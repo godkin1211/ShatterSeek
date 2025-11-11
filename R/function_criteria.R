@@ -77,10 +77,16 @@ statistical_criteria = function(input, genome){
             if(nrow(CNVsnow) > 0){
                 idxa = which(CNVsnow$start <= summary$start[index_chromosome])
                 idxb = which(CNVsnow$end >= summary$end[index_chromosome])
-                if(length(idxa) ==0){idxa = min(which(CNVsnow$start >= summary$start[index_chromosome])) }
-                if(length(idxb) ==0){idxb = max(which(CNVsnow$end <= summary$end[index_chromosome]))}
+                if(length(idxa) ==0){
+                    tmp_idx = which(CNVsnow$start >= summary$start[index_chromosome])
+                    if(length(tmp_idx) > 0) idxa = min(tmp_idx) else idxa = numeric(0)
+                }
+                if(length(idxb) ==0){
+                    tmp_idx = which(CNVsnow$end <= summary$end[index_chromosome])
+                    if(length(tmp_idx) > 0) idxb = max(tmp_idx) else idxb = numeric(0)
+                }
 
-                if(length(idxa) !=0 & length(idxb) !=0  & (max(idxa)-min(idxb))<=0 ){
+                if(length(idxa) !=0 & length(idxb) !=0  & max(idxa) <= min(idxb) ){
                     CNVsnow = CNVsnow[seq(max(idxa),min(idxb),1),]
                     summary$number_CNV_segments[index_chromosome] = nrow(CNVsnow)
                     i_i2_sequential = 0
@@ -241,9 +247,9 @@ statistical_criteria = function(input, genome){
         #-----------------------------------------------------
         SVsnow_exp <- inter 
 
-        idx_inter1 = which(SVsnow_exp$chrom1 == cand) 
-        breaks1= SVsnow_exp$pos2[idx_inter1]
-        idx_inter2 = which(SVsnow_exp$chrom2 == cand) 
+        idx_inter1 = which(SVsnow_exp$chrom1 == cand)
+        breaks1= SVsnow_exp$pos1[idx_inter1]
+        idx_inter2 = which(SVsnow_exp$chrom2 == cand)
         breaks2= SVsnow_exp$pos2[idx_inter2]
         breaks = sort(unique(c(breaks1,breaks2)))
 
@@ -328,5 +334,4 @@ statistical_criteria = function(input, genome){
 
     names(summary_inter) = paste0("inter_",names(summary_inter))
     return(cbind(summary,summary_inter))
-	cat("Statistical criteria successfully evaluated!\n")
 }

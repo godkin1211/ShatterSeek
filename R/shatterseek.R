@@ -232,6 +232,37 @@ shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 	# check that the strand info is correct
 	if (sum(!(SV.sample$strand1 %in% c("+","-")) > 0)){stop("Error in the strand1 column. The strand values can only be + or -")}
 	if (sum(!(SV.sample$strand2 %in% c("+","-")) > 0)){stop("Error in the strand2 column. The strand values can only be + or -")}
+
+	# check SVtype-strand consistency
+	if(nrow(SV.sample) > 0 & "SVtype" %in% names(SV.sample)){
+		# For intrachromosomal SVs, check consistency
+		intra_idx = which(SV.sample$chrom1 == SV.sample$chrom2)
+		if(length(intra_idx) > 0){
+			for(i in intra_idx){
+				svtype = SV.sample$SVtype[i]
+				strand1 = SV.sample$strand1[i]
+				strand2 = SV.sample$strand2[i]
+				strand_combo = paste0(strand1, strand2)
+
+				# Skip empty SVtype or TRA (translocations can have any strand combination)
+				if(svtype == "" | svtype == "TRA") next
+
+				# Check consistency
+				is_consistent = FALSE
+				if(svtype == "DEL" & strand_combo == "+-") is_consistent = TRUE
+				if(svtype == "DUP" & strand_combo == "-+") is_consistent = TRUE
+				if(svtype == "h2hINV" & strand_combo == "++") is_consistent = TRUE
+				if(svtype == "t2tINV" & strand_combo == "--") is_consistent = TRUE
+
+				if(!is_consistent){
+					stop(paste0("Inconsistent SVtype-strand combination at row ", i,
+					           ": SVtype=", svtype, " but strand1=", strand1, ", strand2=", strand2,
+					           ". Expected: DEL (+/-), DUP (-/+), h2hINV (+/+), t2tINV (-/-)"))
+				}
+			}
+		}
+	}
+
 	chromothSample = cluster.SV(SV.sample[SV.sample$chrom1==SV.sample$chrom2,],min.Size=min.Size,chromNames=chromNames) ## pass only intra
 	chromothSample$SV = SV.sample[SV.sample$chrom1==SV.sample$chrom2,]
 	chromothSample$SVinter = SV.sample[SV.sample$chrom1!=SV.sample$chrom2,]
