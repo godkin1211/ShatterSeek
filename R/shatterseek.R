@@ -263,18 +263,55 @@ shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 		}
 	}
 
+	# Check CNV data quality and completeness
+	if(!missing(seg.sample)){
+		seg.sample = as(seg.sample,"data.frame")
+
+		# Warn if CNV data is missing or insufficient
+		if(nrow(seg.sample) == 0){
+			warning("CNV data is empty. Copy number oscillation analysis will be skipped.\n",
+			       "Chromothripsis detection accuracy may be reduced.")
+		} else if(nrow(seg.sample) < 10){
+			warning(sprintf("Very few CNV segments (%d). CN oscillation detection may be unreliable.\n", nrow(seg.sample)),
+			       "Consider using a CNV caller with higher resolution.")
+		}
+
+		# Check for adjacent segments with same CN (which should be merged)
+		if(nrow(seg.sample) > 1){
+			adjacent_same_cn <- 0
+			chrom_list <- unique(seg.sample$chrom)
+
+			for(chr in chrom_list){
+				chr_cnv <- seg.sample[seg.sample$chrom == chr, ]
+				if(nrow(chr_cnv) > 1){
+					chr_cnv <- chr_cnv[order(chr_cnv$start), ]
+					for(i in 1:(nrow(chr_cnv)-1)){
+						if(chr_cnv$total_cn[i] == chr_cnv$total_cn[i+1]){
+							adjacent_same_cn <- adjacent_same_cn + 1
+						}
+					}
+				}
+			}
+
+			if(adjacent_same_cn > 0){
+				warning(sprintf("Found %d pairs of adjacent CNV segments with identical copy numbers.\n", adjacent_same_cn),
+				       "These should be merged. See README for merge code example.\n",
+				       "Unmerged segments may affect CN oscillation detection.")
+			}
+		}
+	} else {
+		warning("CNV data not provided. Copy number oscillation analysis will be skipped.\n",
+		       "Chromothripsis detection will rely solely on SV clustering patterns.")
+		seg.sample <- data.frame(chrom=character(0), start=numeric(0),
+		                        end=numeric(0), total_cn=numeric(0))
+	}
+
 	chromothSample = cluster.SV(SV.sample[SV.sample$chrom1==SV.sample$chrom2,],min.Size=min.Size,chromNames=chromNames) ## pass only intra
 	chromothSample$SV = SV.sample[SV.sample$chrom1==SV.sample$chrom2,]
 	chromothSample$SVinter = SV.sample[SV.sample$chrom1!=SV.sample$chrom2,]
 
 	chromSummary = data.frame(chromothSample$maxClusterSize)#,SVpvalue=chromothSample$SVpvalue[,2])
-	seg.sample = as(seg.sample,"data.frame")
 	chromothSample$CNV = seg.sample
-
-	if(!missing(seg.sample)){
-		seg.sample = as(seg.sample,"data.frame")
-		chromothSample$CNV = seg.sample
-	}
 	
 	out = chromoth(chromSummary=chromSummary,detail=chromothSample)
 	cat("Evaluating the statistical criteria\n")

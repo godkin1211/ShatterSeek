@@ -4,6 +4,8 @@ import(S4Vectors)
 
 importFrom("stats", "binom.test", "chisq.test", "ks.test", "rexp","setNames")
 
+importFrom("utils", "head", "tail")
+
 import(BiocGenerics)
 
 import(IRanges)
@@ -22,7 +24,9 @@ import(foreach)
 
 import(graph)
 
-export(shatterseek,SVs,CNVsegs,plot_chromothripsis)
+export(shatterseek,SVs,CNVsegs,plot_chromothripsis,
+       calculate_confidence_score,classify_chromothripsis,
+       summarize_chromothripsis,check_data_quality)
 
 exportClasses(
 	SVs,CNVsegs,chromoth
