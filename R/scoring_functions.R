@@ -381,7 +381,8 @@ check_data_quality <- function(SV.sample, CNV.sample = NULL, verbose = TRUE) {
                              "Very few CNV segments (<10). May affect CN oscillation detection.")
         }
 
-        # Check for adjacent segments with same CN
+        # Check for truly adjacent segments with same CN
+        # Only check segments that are genomically adjacent (end[i] >= start[i+1])
         if (nrow(CNV.sample) > 1) {
             chrom_list <- unique(CNV.sample$chrom)
             duplicate_cn <- 0
@@ -391,7 +392,9 @@ check_data_quality <- function(SV.sample, CNV.sample = NULL, verbose = TRUE) {
                 if (nrow(chr_cnv) > 1) {
                     chr_cnv <- chr_cnv[order(chr_cnv$start), ]
                     for (i in 1:(nrow(chr_cnv)-1)) {
-                        if (chr_cnv$total_cn[i] == chr_cnv$total_cn[i+1]) {
+                        # Check if segments are truly adjacent (no gap) AND have same CN
+                        if (chr_cnv$end[i] >= chr_cnv$start[i+1] &&
+                            chr_cnv$total_cn[i] == chr_cnv$total_cn[i+1]) {
                             duplicate_cn <- duplicate_cn + 1
                         }
                     }
@@ -400,7 +403,7 @@ check_data_quality <- function(SV.sample, CNV.sample = NULL, verbose = TRUE) {
 
             if (duplicate_cn > 0) {
                 warnings_list <- c(warnings_list,
-                                 sprintf("Found %d adjacent CNV segments with identical copy numbers. Consider merging these segments.", duplicate_cn))
+                                 sprintf("Found %d truly adjacent CNV segments with identical copy numbers. Consider merging these segments.", duplicate_cn))
             }
         }
     } else {

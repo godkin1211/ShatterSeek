@@ -276,7 +276,8 @@ shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 			       "Consider using a CNV caller with higher resolution.")
 		}
 
-		# Check for adjacent segments with same CN (which should be merged)
+		# Check for truly adjacent segments with same CN (which should be merged)
+		# Only check segments that are genomically adjacent (end[i] == start[i+1])
 		if(nrow(seg.sample) > 1){
 			adjacent_same_cn <- 0
 			chrom_list <- unique(seg.sample$chrom)
@@ -286,7 +287,9 @@ shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 				if(nrow(chr_cnv) > 1){
 					chr_cnv <- chr_cnv[order(chr_cnv$start), ]
 					for(i in 1:(nrow(chr_cnv)-1)){
-						if(chr_cnv$total_cn[i] == chr_cnv$total_cn[i+1]){
+						# Check if segments are truly adjacent (no gap) AND have same CN
+						if(chr_cnv$end[i] >= chr_cnv$start[i+1] &&
+						   chr_cnv$total_cn[i] == chr_cnv$total_cn[i+1]){
 							adjacent_same_cn <- adjacent_same_cn + 1
 						}
 					}
@@ -294,7 +297,7 @@ shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 			}
 
 			if(adjacent_same_cn > 0){
-				warning(sprintf("Found %d pairs of adjacent CNV segments with identical copy numbers.\n", adjacent_same_cn),
+				warning(sprintf("Found %d pairs of truly adjacent CNV segments with identical copy numbers.\n", adjacent_same_cn),
 				       "These should be merged. See README for merge code example.\n",
 				       "Unmerged segments may affect CN oscillation detection.")
 			}
