@@ -26,6 +26,12 @@ ShatterSeek takes copy number (CN) and structural variation (SV) calls as input,
 - **Interactive Reports**: Integrated dashboards combining multiple analysis views
 - **Mechanism Landscape**: Genome-wide visualization of chromoanagenesis distribution
 
+### Input Flexibility
+- **VCF Support**: Direct input from popular SV callers (Manta, Delly, GRIDSS, LUMPY, Sniffles)
+- **CNV VCF Support**: Automatic parsing from CNV callers (CNVkit, GATK, Control-FREEC, Canvas)
+- **Auto-detection**: Intelligent caller format recognition
+- **Multi-sample VCF**: Extract specific samples from cohort VCFs
+
 ### Performance
 - Fast analysis: ~20-30s per sample
 - Scalable for large cohort studies
@@ -51,8 +57,9 @@ ShatterSeek requires R (>= 3.0.1) and depends on:
 - **Analysis**: graph, MASS, foreach
 - **Visualization**: ggplot2, grid, gridExtra
 
-**Optional** (for breakpoint sequence analysis):
-- BSgenome packages (e.g., BSgenome.Hsapiens.UCSC.hg19)
+**Optional Dependencies**:
+- **VCF support**: VariantAnnotation or vcfR (for direct VCF input)
+- **Breakpoint sequence analysis**: BSgenome packages (e.g., BSgenome.Hsapiens.UCSC.hg19)
 
 ## Installation
 
@@ -165,6 +172,120 @@ plot_microhomology_distribution(bp_analysis, sample_name = "Sample_01")
 # Generate comprehensive report
 plot_breakpoint_report(bp_analysis, SV_data, sample_name = "Sample_01")
 ```
+
+## VCF Input Support
+
+ShatterSeek now supports **direct VCF input** from popular SV and CNV callers, eliminating the need for manual data conversion.
+
+### Supported SV Callers
+- **Manta**: Illumina short-read SV caller
+- **Delly**: Pan-SV caller with precise breakpoint detection
+- **GRIDSS**: High-sensitivity breakpoint detection
+- **LUMPY**: Probabilistic SV detection
+- **Sniffles**: Long-read (PacBio/ONT) SV caller
+- **Generic**: Any VCF with standard SVTYPE/END fields
+
+### Supported CNV Callers
+- **CNVkit**: Hybrid capture and WGS CNV detection
+- **GATK**: Genome Analysis Toolkit CNV caller
+- **Control-FREEC**: Copy number and allelic content detection
+- **Canvas**: Illumina CNV caller
+- **Generic**: Any VCF with CN field
+
+### Basic VCF Workflow
+
+```R
+# Read VCF files directly (caller auto-detection)
+sv_data <- read_sv_vcf("sample.sv.vcf.gz")
+cnv_data <- read_cnv_vcf("sample.cnv.vcf.gz")
+
+# Run chromoanagenesis detection
+results <- detect_chromoanagenesis(
+    SV.sample = sv_data,
+    CNV.sample = cnv_data,
+    genome = "hg38"
+)
+```
+
+### Advanced VCF Options
+
+```R
+# Specify caller explicitly and set filters
+sv_data <- read_sv_vcf(
+    vcf_file = "sample.manta.vcf.gz",
+    caller = "manta",              # Explicitly specify caller
+    min_sv_size = 1000,            # Filter SVs < 1kb
+    include_tra = TRUE             # Include translocations
+)
+
+# CNV with custom field
+cnv_data <- read_cnv_vcf(
+    vcf_file = "sample.cnv.vcf.gz",
+    caller = "cnvkit",
+    cn_field = "CN",               # Specify CN field name
+    merge_adjacent = TRUE          # Merge adjacent segments with same CN
+)
+
+# Multi-sample VCF
+sv_data <- read_sv_vcf(
+    vcf_file = "cohort.vcf.gz",
+    sample_name = "SAMPLE_001"     # Extract specific sample
+)
+```
+
+### Complete VCF-based Analysis Example
+
+```R
+library(ShatterSeek)
+
+# 1. Read data from VCF files
+sv_data <- read_sv_vcf(
+    vcf_file = "patient_001.manta.vcf.gz",
+    caller = "manta",
+    min_sv_size = 1000
+)
+
+cnv_data <- read_cnv_vcf(
+    vcf_file = "patient_001.cnvkit.vcf.gz",
+    caller = "cnvkit"
+)
+
+# 2. Quality check
+quality <- check_data_quality(sv_data, cnv_data)
+
+# 3. Detect all chromoanagenesis types
+results <- detect_chromoanagenesis(
+    SV.sample = sv_data,
+    CNV.sample = cnv_data,
+    genome = "hg38",
+    verbose = TRUE
+)
+
+# 4. Classify mixed mechanisms
+mixed <- classify_mixed_mechanisms(results)
+
+# 5. Visualize
+plot_mechanism_landscape(mixed, "Patient_001")
+plot_complexity_breakdown(mixed, "Patient_001")
+```
+
+### VCF Installation Requirements
+
+VCF support requires one of the following packages:
+
+**Option 1: VariantAnnotation (recommended)**
+```R
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("VariantAnnotation")
+```
+
+**Option 2: vcfR (lightweight alternative)**
+```R
+install.packages("vcfR")
+```
+
+For more examples, see `inst/examples/vcf_workflow.R`.
 
 ## Detailed Usage
 

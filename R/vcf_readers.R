@@ -1,0 +1,499 @@
+#' Read structural variants from VCF file
+#'
+#' Reads SV data from VCF format and converts it to SVs object compatible
+#' with ShatterSeek. Supports multiple SV callers including Manta, GRIDSS,
+#' Delly, LUMPY, and Sniffles.
+#'
+#' @param vcf_file Path to VCF file (can be gzipped, .vcf or .vcf.gz)
+#' @param caller SV caller name. One of: "auto", "manta", "gridss", "delly",
+#'   "lumpy", "sniffles". Default "auto" attempts automatic detection.
+#' @param min_sv_size Minimum SV size to include (default: 1000 bp)
+#' @param include_tra Include translocations/BND events (default: TRUE)
+#' @param sample_name Sample name to extract from multi-sample VCF (default: first sample)
+#' @return An SVs object containing the structural variations
+#' @details
+#' This function handles various VCF formats from different SV callers:
+#'
+#' - **Manta**: Uses SVTYPE (BND, DEL, DUP, INV) and standard fields
+#' - **GRIDSS**: Primarily BND records with MATEID linking
+#' - **Delly**: Standard SVTYPE with CT (connection type) for strands
+#' - **LUMPY**: Similar to Delly with STRANDS field
+#' - **Sniffles**: Long-read caller with standard SVTYPE
+#'
+#' The function extracts:
+#' - Chromosome and position for both breakpoints
+#' - SV type (DEL, DUP, INV, TRA)
+#' - Strand orientation for both breakpoints
+#'
+#' Strand encoding:
+#' - DEL: +/- (deletion-like)
+#' - DUP: -/+ (duplication-like)
+#' - h2hINV: +/+ (head-to-head inversion)
+#' - t2tINV: -/- (tail-to-tail inversion)
+#' - TRA: determined from ALT field or INFO fields
+#'
+#' @examples
+#' \dontrun{
+#' # Read from Manta VCF
+#' sv_data <- read_sv_vcf("sample.manta.vcf.gz", caller = "manta")
+#'
+#' # Auto-detect caller
+#' sv_data <- read_sv_vcf("sample.sv.vcf.gz")
+#'
+#' # Filter small SVs and exclude translocations
+#' sv_data <- read_sv_vcf("sample.vcf.gz",
+#'                        min_sv_size = 10000,
+#'                        include_tra = FALSE)
+#' }
+#' @export
+read_sv_vcf <- function(vcf_file,
+                        caller = "auto",
+                        min_sv_size = 1000,
+                        include_tra = TRUE,
+                        sample_name = NULL) {
+
+    # Check if file exists
+    if (!file.exists(vcf_file)) {
+        stop(sprintf("VCF file not found: %s", vcf_file))
+    }
+
+    # Load VariantAnnotation if available, otherwise use vcfR
+    if (requireNamespace("VariantAnnotation", quietly = TRUE)) {
+        svs <- .read_sv_vcf_variantannotation(vcf_file, caller, min_sv_size,
+                                              include_tra, sample_name)
+    } else if (requireNamespace("vcfR", quietly = TRUE)) {
+        svs <- .read_sv_vcf_vcfr(vcf_file, caller, min_sv_size,
+                                 include_tra, sample_name)
+    } else {
+        stop("Please install either 'VariantAnnotation' (Bioconductor) or 'vcfR' package:\n",
+             "  BiocManager::install('VariantAnnotation')\n",
+             "  or\n",
+             "  install.packages('vcfR')")
+    }
+
+    return(svs)
+}
+
+
+#' Read copy number variants from VCF file
+#'
+#' Reads CNV data from VCF format and converts it to CNVsegs object.
+#' Supports various CNV callers including CNVkit, GATK, Control-FREEC,
+#' and Canvas.
+#'
+#' @param vcf_file Path to VCF file (can be gzipped)
+#' @param caller CNV caller name. One of: "auto", "cnvkit", "gatk",
+#'   "controlfreec", "canvas". Default "auto" attempts automatic detection.
+#' @param cn_field INFO field containing copy number (default: auto-detect)
+#' @param merge_adjacent Merge adjacent segments with same CN (default: TRUE)
+#' @param sample_name Sample name to extract from multi-sample VCF (default: first sample)
+#' @return A CNVsegs object containing copy number segments
+#' @details
+#' This function handles CNV VCF formats from different callers:
+#'
+#' - **CNVkit**: Uses CN field in INFO
+#' - **GATK**: Uses CN field
+#' - **Control-FREEC**: Uses CN or CNV field
+#' - **Canvas**: Uses CN field
+#'
+#' The function extracts:
+#' - Chromosome
+#' - Start position
+#' - End position (from INFO/END)
+#' - Total copy number
+#'
+#' @examples
+#' \dontrun{
+#' # Read from CNVkit VCF
+#' cnv_data <- read_cnv_vcf("sample.cnvkit.vcf.gz", caller = "cnvkit")
+#'
+#' # Auto-detect caller
+#' cnv_data <- read_cnv_vcf("sample.cnv.vcf.gz")
+#'
+#' # Don't merge adjacent segments
+#' cnv_data <- read_cnv_vcf("sample.vcf.gz", merge_adjacent = FALSE)
+#' }
+#' @export
+read_cnv_vcf <- function(vcf_file,
+                         caller = "auto",
+                         cn_field = NULL,
+                         merge_adjacent = TRUE,
+                         sample_name = NULL) {
+
+    # Check if file exists
+    if (!file.exists(vcf_file)) {
+        stop(sprintf("VCF file not found: %s", vcf_file))
+    }
+
+    # Load package
+    if (requireNamespace("VariantAnnotation", quietly = TRUE)) {
+        cnvs <- .read_cnv_vcf_variantannotation(vcf_file, caller, cn_field,
+                                                merge_adjacent, sample_name)
+    } else if (requireNamespace("vcfR", quietly = TRUE)) {
+        cnvs <- .read_cnv_vcf_vcfr(vcf_file, caller, cn_field,
+                                   merge_adjacent, sample_name)
+    } else {
+        stop("Please install either 'VariantAnnotation' (Bioconductor) or 'vcfR' package:\n",
+             "  BiocManager::install('VariantAnnotation')\n",
+             "  or\n",
+             "  install.packages('vcfR')")
+    }
+
+    return(cnvs)
+}
+
+
+#' Internal function: Read SV VCF using VariantAnnotation
+#' @keywords internal
+.read_sv_vcf_variantannotation <- function(vcf_file, caller, min_sv_size,
+                                           include_tra, sample_name) {
+
+    # Read VCF
+    vcf <- VariantAnnotation::readVcf(vcf_file)
+
+    # Auto-detect caller if needed
+    if (caller == "auto") {
+        caller <- .detect_sv_caller(vcf)
+        message(sprintf("Auto-detected SV caller: %s", caller))
+    }
+
+    # Extract variant info
+    info <- VariantAnnotation::info(vcf)
+    ranges <- GenomicRanges::granges(vcf)
+
+    # Initialize vectors
+    chrom1 <- as.character(GenomicRanges::seqnames(ranges))
+    pos1 <- GenomicRanges::start(ranges)
+
+    # Get SVTYPE
+    svtype <- if ("SVTYPE" %in% colnames(info)) {
+        as.character(info$SVTYPE)
+    } else {
+        rep(NA, length(ranges))
+    }
+
+    # Extract end position and chr2 based on caller
+    if (caller == "manta") {
+        result <- .parse_manta_sv(vcf, info, ranges)
+    } else if (caller == "gridss") {
+        result <- .parse_gridss_sv(vcf, info, ranges)
+    } else if (caller == "delly") {
+        result <- .parse_delly_sv(vcf, info, ranges)
+    } else if (caller == "lumpy") {
+        result <- .parse_lumpy_sv(vcf, info, ranges)
+    } else if (caller == "sniffles") {
+        result <- .parse_sniffles_sv(vcf, info, ranges)
+    } else {
+        # Generic parser
+        result <- .parse_generic_sv(vcf, info, ranges)
+    }
+
+    # Filter by size
+    if (!is.null(min_sv_size) && min_sv_size > 0) {
+        is_intra <- result$chrom1 == result$chrom2
+        sv_size <- abs(result$pos2 - result$pos1)
+        keep <- !is_intra | (is_intra & sv_size >= min_sv_size)
+
+        result$chrom1 <- result$chrom1[keep]
+        result$pos1 <- result$pos1[keep]
+        result$chrom2 <- result$chrom2[keep]
+        result$pos2 <- result$pos2[keep]
+        result$svtype <- result$svtype[keep]
+        result$strand1 <- result$strand1[keep]
+        result$strand2 <- result$strand2[keep]
+    }
+
+    # Filter translocations if requested
+    if (!include_tra) {
+        is_tra <- result$svtype == "TRA" | result$chrom1 != result$chrom2
+        keep <- !is_tra
+
+        result$chrom1 <- result$chrom1[keep]
+        result$pos1 <- result$pos1[keep]
+        result$chrom2 <- result$chrom2[keep]
+        result$pos2 <- result$pos2[keep]
+        result$svtype <- result$svtype[keep]
+        result$strand1 <- result$strand1[keep]
+        result$strand2 <- result$strand2[keep]
+    }
+
+    # Create SVs object
+    svs <- SVs(
+        chrom1 = result$chrom1,
+        pos1 = result$pos1,
+        chrom2 = result$chrom2,
+        pos2 = result$pos2,
+        SVtype = result$svtype,
+        strand1 = result$strand1,
+        strand2 = result$strand2
+    )
+
+    message(sprintf("Loaded %d SVs from %s", length(svs@chrom1), vcf_file))
+
+    return(svs)
+}
+
+
+#' Internal function: Read SV VCF using vcfR
+#' @keywords internal
+.read_sv_vcf_vcfr <- function(vcf_file, caller, min_sv_size,
+                              include_tra, sample_name) {
+
+    # Read VCF
+    vcf <- vcfR::read.vcfR(vcf_file, verbose = FALSE)
+
+    # Auto-detect caller if needed
+    if (caller == "auto") {
+        caller <- .detect_sv_caller_vcfr(vcf)
+        message(sprintf("Auto-detected SV caller: %s", caller))
+    }
+
+    # Extract fixed fields
+    fix <- vcfR::getFIX(vcf)
+    chrom1 <- fix[, "CHROM"]
+    pos1 <- as.numeric(fix[, "POS"])
+
+    # Extract INFO fields
+    info_df <- vcfR::extract.info(vcf)
+
+    # Parse based on caller
+    if (caller == "manta") {
+        result <- .parse_manta_sv_vcfr(vcf, fix, info_df)
+    } else if (caller == "gridss") {
+        result <- .parse_gridss_sv_vcfr(vcf, fix, info_df)
+    } else if (caller == "delly") {
+        result <- .parse_delly_sv_vcfr(vcf, fix, info_df)
+    } else if (caller == "lumpy") {
+        result <- .parse_lumpy_sv_vcfr(vcf, fix, info_df)
+    } else if (caller == "sniffles") {
+        result <- .parse_sniffles_sv_vcfr(vcf, fix, info_df)
+    } else {
+        result <- .parse_generic_sv_vcfr(vcf, fix, info_df)
+    }
+
+    # Apply filters (similar to VariantAnnotation version)
+    if (!is.null(min_sv_size) && min_sv_size > 0) {
+        is_intra <- result$chrom1 == result$chrom2
+        sv_size <- abs(result$pos2 - result$pos1)
+        keep <- !is_intra | (is_intra & sv_size >= min_sv_size)
+
+        for (field in names(result)) {
+            result[[field]] <- result[[field]][keep]
+        }
+    }
+
+    if (!include_tra) {
+        is_tra <- result$svtype == "TRA" | result$chrom1 != result$chrom2
+        keep <- !is_tra
+
+        for (field in names(result)) {
+            result[[field]] <- result[[field]][keep]
+        }
+    }
+
+    # Create SVs object
+    svs <- SVs(
+        chrom1 = result$chrom1,
+        pos1 = result$pos1,
+        chrom2 = result$chrom2,
+        pos2 = result$pos2,
+        SVtype = result$svtype,
+        strand1 = result$strand1,
+        strand2 = result$strand2
+    )
+
+    message(sprintf("Loaded %d SVs from %s", length(svs@chrom1), vcf_file))
+
+    return(svs)
+}
+
+
+#' Internal function: Read CNV VCF using VariantAnnotation
+#' @keywords internal
+.read_cnv_vcf_variantannotation <- function(vcf_file, caller, cn_field,
+                                            merge_adjacent, sample_name) {
+
+    # Read VCF
+    vcf <- VariantAnnotation::readVcf(vcf_file)
+
+    # Auto-detect caller if needed
+    if (caller == "auto") {
+        caller <- .detect_cnv_caller(vcf)
+        message(sprintf("Auto-detected CNV caller: %s", caller))
+    }
+
+    # Auto-detect CN field if not specified
+    if (is.null(cn_field)) {
+        cn_field <- .detect_cn_field(vcf, caller)
+    }
+
+    # Extract variant info
+    info <- VariantAnnotation::info(vcf)
+    ranges <- GenomicRanges::granges(vcf)
+
+    chrom <- as.character(GenomicRanges::seqnames(ranges))
+    start <- GenomicRanges::start(ranges)
+
+    # Get END position
+    end <- if ("END" %in% colnames(info)) {
+        as.numeric(info$END)
+    } else {
+        start  # Use start if END not available
+    }
+
+    # Get copy number
+    cn <- if (cn_field %in% colnames(info)) {
+        as.numeric(info[[cn_field]])
+    } else {
+        stop(sprintf("CN field '%s' not found in VCF INFO", cn_field))
+    }
+
+    # Remove NA values
+    valid <- !is.na(chrom) & !is.na(start) & !is.na(end) & !is.na(cn)
+    chrom <- chrom[valid]
+    start <- start[valid]
+    end <- end[valid]
+    cn <- cn[valid]
+
+    # Create data frame for merging
+    df <- data.frame(
+        chrom = chrom,
+        start = start,
+        end = end,
+        CN = cn,
+        stringsAsFactors = FALSE
+    )
+
+    # Sort by chromosome and position
+    df <- df[order(df$chrom, df$start), ]
+
+    # Merge adjacent segments if requested
+    if (merge_adjacent) {
+        df <- .merge_adjacent_segments(df)
+    }
+
+    # Create CNVsegs object
+    cnvs <- CNVsegs(
+        chrom = df$chrom,
+        start = df$start,
+        end = df$end,
+        total_cn = df$CN
+    )
+
+    message(sprintf("Loaded %d CNV segments from %s", length(cnvs@chrom), vcf_file))
+
+    return(cnvs)
+}
+
+
+#' Internal function: Read CNV VCF using vcfR
+#' @keywords internal
+.read_cnv_vcf_vcfr <- function(vcf_file, caller, cn_field,
+                               merge_adjacent, sample_name) {
+
+    # Read VCF
+    vcf <- vcfR::read.vcfR(vcf_file, verbose = FALSE)
+
+    # Auto-detect caller if needed
+    if (caller == "auto") {
+        caller <- .detect_cnv_caller_vcfr(vcf)
+        message(sprintf("Auto-detected CNV caller: %s", caller))
+    }
+
+    # Auto-detect CN field if not specified
+    if (is.null(cn_field)) {
+        cn_field <- .detect_cn_field_vcfr(vcf, caller)
+    }
+
+    # Extract fixed fields
+    fix <- vcfR::getFIX(vcf)
+    chrom <- fix[, "CHROM"]
+    start <- as.numeric(fix[, "POS"])
+
+    # Extract INFO
+    info_df <- vcfR::extract.info(vcf, element = c("END", cn_field))
+
+    end <- if ("END" %in% colnames(info_df)) {
+        as.numeric(info_df[, "END"])
+    } else {
+        start
+    }
+
+    cn <- if (cn_field %in% colnames(info_df)) {
+        as.numeric(info_df[, cn_field])
+    } else {
+        stop(sprintf("CN field '%s' not found in VCF INFO", cn_field))
+    }
+
+    # Remove NA values
+    valid <- !is.na(chrom) & !is.na(start) & !is.na(end) & !is.na(cn)
+    chrom <- chrom[valid]
+    start <- start[valid]
+    end <- end[valid]
+    cn <- cn[valid]
+
+    # Create data frame
+    df <- data.frame(
+        chrom = chrom,
+        start = start,
+        end = end,
+        CN = cn,
+        stringsAsFactors = FALSE
+    )
+
+    # Sort by chromosome and position
+    df <- df[order(df$chrom, df$start), ]
+
+    # Merge adjacent segments if requested
+    if (merge_adjacent) {
+        df <- .merge_adjacent_segments(df)
+    }
+
+    # Create CNVsegs object
+    cnvs <- CNVsegs(
+        chrom = df$chrom,
+        start = df$start,
+        end = df$end,
+        total_cn = df$CN
+    )
+
+    message(sprintf("Loaded %d CNV segments from %s", length(cnvs@chrom), vcf_file))
+
+    return(cnvs)
+}
+
+
+#' Internal: Merge adjacent CNV segments with same CN
+#' @keywords internal
+.merge_adjacent_segments <- function(df) {
+    if (nrow(df) == 0) return(df)
+
+    merged <- list()
+    current <- df[1, ]
+
+    for (i in 2:nrow(df)) {
+        row <- df[i, ]
+
+        # Check if same chromosome, adjacent position, and same CN
+        if (row$chrom == current$chrom &&
+            row$start <= current$end + 1 &&
+            row$CN == current$CN) {
+            # Merge: extend current segment
+            current$end <- max(current$end, row$end)
+        } else {
+            # Save current and start new
+            merged[[length(merged) + 1]] <- current
+            current <- row
+        }
+    }
+
+    # Add last segment
+    merged[[length(merged) + 1]] <- current
+
+    # Convert back to data frame
+    do.call(rbind, merged)
+}
+
+
+# Caller-specific parsers are implemented in vcf_parsers.R
+# All R files in R/ directory are automatically loaded by the package

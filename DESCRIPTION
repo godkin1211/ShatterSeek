@@ -8,6 +8,7 @@ Maintainer: Isidro Cortes-Ciriano <isidrolauscher@gmail.com>
 Description: ShatterSeek is developed for detecting chromothripis events using structural variation and copy number variations from whole-genome sequencing data. 
 Depends: R (>= 3.5.0),methods,BiocGenerics,foreach,graph,S4Vectors
 Imports: GenomicRanges,IRanges,MASS,ggplot2,grid,gridExtra
+Suggests: VariantAnnotation,vcfR
 License: GPL (>= 3)
 Repository: CRAN
 LazyData: no

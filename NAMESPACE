@@ -37,7 +37,8 @@ export(detect_chromothripsis,SVs,CNVsegs,plot_chromothripsis,
        analyze_breakpoint_sequences,plot_repair_mechanisms,
        plot_microhomology_distribution,plot_repair_by_svtype,
        plot_breakpoint_report,debug_chromoanagenesis_result,
-       debug_mixed_mechanisms)
+       debug_mixed_mechanisms,
+       read_sv_vcf,read_cnv_vcf)
 
 exportClasses(
 	SVs,CNVsegs,chromoth
