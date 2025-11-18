@@ -573,9 +573,14 @@
     strand1[svtype == "INV"] <- "+"
     strand2[svtype == "INV"] <- "+"
 
+    # INS should be treated as DUP (same strand orientation)
+    strand1[svtype == "INS"] <- "-"
+    strand2[svtype == "INS"] <- "+"
+
     # Convert to ShatterSeek format
     svtype[svtype == "BND"] <- "TRA"
     svtype[svtype == "INV"] <- "h2hINV"
+    svtype[svtype == "INS"] <- "DUP"  # Treat insertions as duplications
 
     list(
         chrom1 = chrom1,
@@ -629,8 +634,13 @@
     strand1[svtype == "INV"] <- "+"
     strand2[svtype == "INV"] <- "+"
 
+    # INS should be treated as DUP (same strand orientation)
+    strand1[svtype == "INS"] <- "-"
+    strand2[svtype == "INS"] <- "+"
+
     svtype[svtype == "BND"] <- "TRA"
     svtype[svtype == "INV"] <- "h2hINV"
+    svtype[svtype == "INS"] <- "DUP"  # Treat insertions as duplications
 
     list(
         chrom1 = chrom1,
