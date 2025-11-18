@@ -28,7 +28,8 @@ plot_chromoanagenesis_circos <- function(chromoanagenesis_result,
                                         CNV.sample,
                                         genome = "hg19",
                                         highlight_mechanisms = c("chromothripsis", "chromoplexy", "chromosynthesis"),
-                                        sample_name = "") {
+                                        sample_name = "",
+                                        verbose = TRUE) {
 
     if (!requireNamespace("circlize", quietly = TRUE)) {
         stop("Package 'circlize' is required for circos plots. Install with: install.packages('circlize')")
@@ -47,12 +48,26 @@ plot_chromoanagenesis_circos <- function(chromoanagenesis_result,
         cnv_data <- CNV.sample
     }
 
-    # Get chromosome sizes
+    # Get chromosome sizes (base set)
     chr_sizes <- get_chromosome_sizes()
+
+    # Check which chromosomes are actually in the data and add missing ones
+    all_chroms_sv <- unique(c(sv_data$chrom1, sv_data$chrom2))
+    all_chroms_cnv <- unique(cnv_data$chrom)
+    all_chroms <- unique(c(all_chroms_sv, all_chroms_cnv))
+
+    # Add Y chromosome if present in data but not in chr_sizes
+    if ("Y" %in% all_chroms && !"Y" %in% names(chr_sizes)) {
+        chr_sizes$Y <- 59373566  # hg19 Y chromosome size
+    }
+
+    # Filter to chromosomes present in chr_sizes
+    chroms_to_use <- names(chr_sizes)[names(chr_sizes) %in% all_chroms]
+
     chr_df <- data.frame(
-        chr = paste0("chr", names(chr_sizes)),
+        chr = paste0("chr", chroms_to_use),
         start = 1,
-        end = unlist(chr_sizes),
+        end = unlist(chr_sizes[chroms_to_use]),
         stringsAsFactors = FALSE
     )
 
@@ -199,6 +214,14 @@ plot_chromoanagenesis_circos <- function(chromoanagenesis_result,
             "TRA" = "#984ea3"
         )
 
+        if (verbose) {
+            cat(sprintf("\nCircos plot: Total SVs = %d\n", nrow(sv_circos)))
+            cat("SV types:\n")
+            print(table(sv_circos$SVtype))
+            n_inter <- sum(sv_circos$chrom1 != sv_circos$chrom2)
+            cat(sprintf("Interchromosomal SVs: %d\n", n_inter))
+        }
+
         # Determine which SVs to show (limit for visibility)
         # Prioritize SVs in chromoanagenesis regions
         sv_in_regions <- merge_sv_with_regions(sv_circos, ca_regions)
@@ -207,12 +230,27 @@ plot_chromoanagenesis_circos <- function(chromoanagenesis_result,
         sv_priority <- sv_in_regions[sv_in_regions$in_ca_region, ]
         sv_other <- sv_in_regions[!sv_in_regions$in_ca_region, ]
 
+        if (verbose) {
+            cat(sprintf("SVs in chromoanagenesis regions: %d\n", nrow(sv_priority)))
+            cat(sprintf("Other SVs: %d\n", nrow(sv_other)))
+        }
+
         if (nrow(sv_other) > 100) {
             # Sample 100 random other SVs for clarity
             sv_other <- sv_other[sample(nrow(sv_other), 100), ]
+            if (verbose) {
+                cat(sprintf("Sampled %d other SVs for display\n", nrow(sv_other)))
+            }
         }
 
         sv_to_plot <- rbind(sv_priority, sv_other)
+
+        if (verbose) {
+            cat(sprintf("Total SVs to plot: %d\n", nrow(sv_to_plot)))
+            n_inter_plot <- sum(sv_to_plot$chr1 != sv_to_plot$chr2)
+            cat(sprintf("  - Interchromosomal: %d\n", n_inter_plot))
+            cat(sprintf("  - Intrachromosomal: %d\n\n", nrow(sv_to_plot) - n_inter_plot))
+        }
 
         # Draw links
         for (i in seq_len(nrow(sv_to_plot))) {
