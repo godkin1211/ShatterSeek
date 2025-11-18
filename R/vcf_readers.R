@@ -10,6 +10,9 @@
 #' @param min_sv_size Minimum SV size to include (default: 1000 bp)
 #' @param include_tra Include translocations/BND events (default: TRUE)
 #' @param sample_name Sample name to extract from multi-sample VCF (default: first sample)
+#' @param keep_chr_prefix Keep "chr" prefix in chromosome names (default: FALSE).
+#'   ShatterSeek expects chromosome names without "chr" prefix (1, 2, ..., 22, X).
+#'   Set to TRUE only if your reference uses "chr" prefix.
 #' @return An SVs object containing the structural variations
 #' @details
 #' This function handles various VCF formats from different SV callers:
@@ -50,7 +53,8 @@ read_sv_vcf <- function(vcf_file,
                         caller = "auto",
                         min_sv_size = 1000,
                         include_tra = TRUE,
-                        sample_name = NULL) {
+                        sample_name = NULL,
+                        keep_chr_prefix = FALSE) {
 
     # Check if file exists
     if (!file.exists(vcf_file)) {
@@ -71,6 +75,11 @@ read_sv_vcf <- function(vcf_file,
              "  install.packages('vcfR')")
     }
 
+    # Standardize chromosome names if needed
+    if (!keep_chr_prefix) {
+        svs <- .standardize_chromosome_names_svs(svs)
+    }
+
     return(svs)
 }
 
@@ -87,6 +96,9 @@ read_sv_vcf <- function(vcf_file,
 #' @param cn_field INFO field containing copy number (default: auto-detect)
 #' @param merge_adjacent Merge adjacent segments with same CN (default: TRUE)
 #' @param sample_name Sample name to extract from multi-sample VCF (default: first sample)
+#' @param keep_chr_prefix Keep "chr" prefix in chromosome names (default: FALSE).
+#'   ShatterSeek expects chromosome names without "chr" prefix (1, 2, ..., 22, X).
+#'   Set to TRUE only if your reference uses "chr" prefix.
 #' @return A CNVsegs object containing copy number segments
 #' @details
 #' This function handles CNV VCF formats from different callers:
@@ -118,7 +130,8 @@ read_cnv_vcf <- function(vcf_file,
                          caller = "auto",
                          cn_field = NULL,
                          merge_adjacent = TRUE,
-                         sample_name = NULL) {
+                         sample_name = NULL,
+                         keep_chr_prefix = FALSE) {
 
     # Check if file exists
     if (!file.exists(vcf_file)) {
@@ -137,6 +150,11 @@ read_cnv_vcf <- function(vcf_file,
              "  BiocManager::install('VariantAnnotation')\n",
              "  or\n",
              "  install.packages('vcfR')")
+    }
+
+    # Standardize chromosome names if needed
+    if (!keep_chr_prefix) {
+        cnvs <- .standardize_chromosome_names_cnvs(cnvs)
     }
 
     return(cnvs)
@@ -492,6 +510,66 @@ read_cnv_vcf <- function(vcf_file,
 
     # Convert back to data frame
     do.call(rbind, merged)
+}
+
+
+#' Internal: Standardize chromosome names for SVs object
+#' Removes "chr" prefix to match ShatterSeek's expected format (1, 2, ..., 22, X)
+#' @keywords internal
+.standardize_chromosome_names_svs <- function(svs) {
+    # Convert SVs object to data frame
+    svs_df <- as.data.frame(svs)
+
+    # Standardize chrom1
+    svs_df$chrom1 <- gsub("^chr", "", svs_df$chrom1, ignore.case = TRUE)
+    svs_df$chrom1 <- gsub("^Chr", "", svs_df$chrom1)
+
+    # Standardize chrom2
+    svs_df$chrom2 <- gsub("^chr", "", svs_df$chrom2, ignore.case = TRUE)
+    svs_df$chrom2 <- gsub("^Chr", "", svs_df$chrom2)
+
+    # Convert MT to M if present
+    svs_df$chrom1 <- gsub("^MT$", "M", svs_df$chrom1)
+    svs_df$chrom2 <- gsub("^MT$", "M", svs_df$chrom2)
+
+    # Create new SVs object with standardized names
+    svs_new <- SVs(
+        chrom1 = svs_df$chrom1,
+        pos1 = svs_df$pos1,
+        chrom2 = svs_df$chrom2,
+        pos2 = svs_df$pos2,
+        SVtype = svs_df$SVtype,
+        strand1 = svs_df$strand1,
+        strand2 = svs_df$strand2
+    )
+
+    return(svs_new)
+}
+
+
+#' Internal: Standardize chromosome names for CNVsegs object
+#' Removes "chr" prefix to match ShatterSeek's expected format (1, 2, ..., 22, X)
+#' @keywords internal
+.standardize_chromosome_names_cnvs <- function(cnvs) {
+    # Convert CNVsegs object to data frame
+    cnvs_df <- as.data.frame(cnvs)
+
+    # Standardize chromosome names
+    cnvs_df$chrom <- gsub("^chr", "", cnvs_df$chrom, ignore.case = TRUE)
+    cnvs_df$chrom <- gsub("^Chr", "", cnvs_df$chrom)
+
+    # Convert MT to M if present
+    cnvs_df$chrom <- gsub("^MT$", "M", cnvs_df$chrom)
+
+    # Create new CNVsegs object with standardized names
+    cnvs_new <- CNVsegs(
+        chrom = cnvs_df$chrom,
+        start = cnvs_df$start,
+        end = cnvs_df$end,
+        total_cn = cnvs_df$total_cn
+    )
+
+    return(cnvs_new)
 }
 
 
