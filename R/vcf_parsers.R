@@ -21,6 +21,8 @@
             source <- tolower(paste(as.character(source_obj), collapse = " "))
         }
 
+        # Check for DRAGEN first (before GRIDSS, as they use similar format)
+        if (grepl("dragen", source)) return("dragen")
         if (grepl("manta", source)) return("manta")
         if (grepl("gridss", source)) return("gridss")
         if (grepl("delly", source)) return("delly")
@@ -59,6 +61,8 @@
 
     if (length(source_lines) > 0) {
         source <- tolower(source_lines[1])
+        # Check for DRAGEN first (before GRIDSS, as they use similar format)
+        if (grepl("dragen", source)) return("dragen")
         if (grepl("manta", source)) return("manta")
         if (grepl("gridss", source)) return("gridss")
         if (grepl("delly", source)) return("delly")
@@ -103,6 +107,7 @@
             source <- tolower(paste(as.character(source_obj), collapse = " "))
         }
 
+        if (grepl("dragen", source)) return("dragen")
         if (grepl("cnvkit", source)) return("cnvkit")
         if (grepl("gatk", source)) return("gatk")
         if (grepl("freec|control-freec", source)) return("controlfreec")
@@ -125,6 +130,7 @@
 
     if (length(source_lines) > 0) {
         source <- tolower(source_lines[1])
+        if (grepl("dragen", source)) return("dragen")
         if (grepl("cnvkit", source)) return("cnvkit")
         if (grepl("gatk", source)) return("gatk")
         if (grepl("freec|control-freec", source)) return("controlfreec")

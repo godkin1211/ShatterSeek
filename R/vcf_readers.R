@@ -5,7 +5,7 @@
 #' Delly, LUMPY, and Sniffles.
 #'
 #' @param vcf_file Path to VCF file (can be gzipped, .vcf or .vcf.gz)
-#' @param caller SV caller name. One of: "auto", "manta", "gridss", "delly",
+#' @param caller SV caller name. One of: "auto", "manta", "dragen", "gridss", "delly",
 #'   "lumpy", "sniffles". Default "auto" attempts automatic detection.
 #' @param min_sv_size Minimum SV size to include (default: 1000 bp)
 #' @param include_tra Include translocations/BND events (default: TRUE)
@@ -19,6 +19,7 @@
 #' This function handles various VCF formats from different SV callers:
 #'
 #' - **Manta**: Uses SVTYPE (BND, DEL, DUP, INV) and standard fields
+#' - **DRAGEN**: Illumina's accelerated pipeline, uses standard SVTYPE with BND/MATEID
 #' - **GRIDSS**: Primarily BND records with MATEID linking
 #' - **Delly**: Standard SVTYPE with CT (connection type) for strands
 #' - **LUMPY**: Similar to Delly with STRANDS field
@@ -88,7 +89,7 @@ read_sv_vcf <- function(vcf_file,
 #' and Canvas.
 #'
 #' @param vcf_file Path to VCF file (can be gzipped)
-#' @param caller CNV caller name. One of: "auto", "cnvkit", "gatk",
+#' @param caller CNV caller name. One of: "auto", "dragen", "cnvkit", "gatk",
 #'   "controlfreec", "canvas". Default "auto" attempts automatic detection.
 #' @param cn_field INFO field containing copy number (default: auto-detect)
 #' @param merge_adjacent Merge adjacent segments with same CN (default: TRUE)
@@ -101,6 +102,7 @@ read_sv_vcf <- function(vcf_file,
 #' @details
 #' This function handles CNV VCF formats from different callers:
 #'
+#' - **DRAGEN**: Uses CN field, SVTYPE=CNV with DEL/DUP ALT
 #' - **CNVkit**: Uses CN field in INFO
 #' - **GATK**: Uses CN field
 #' - **Control-FREEC**: Uses CN or CNV field
@@ -187,6 +189,9 @@ read_cnv_vcf <- function(vcf_file,
     # Extract end position and chr2 based on caller
     if (caller == "manta") {
         result <- .parse_manta_sv(vcf, info, ranges)
+    } else if (caller == "dragen") {
+        # DRAGEN uses standard VCF format, use generic parser
+        result <- .parse_generic_sv(vcf, info, ranges)
     } else if (caller == "gridss") {
         result <- .parse_gridss_sv(vcf, info, ranges)
     } else if (caller == "delly") {
@@ -300,6 +305,9 @@ read_cnv_vcf <- function(vcf_file,
     # Parse based on caller
     if (caller == "manta") {
         result <- .parse_manta_sv_vcfr(vcf, fix, info_df)
+    } else if (caller == "dragen") {
+        # DRAGEN uses standard VCF format, use generic parser
+        result <- .parse_generic_sv_vcfr(vcf, fix, info_df)
     } else if (caller == "gridss") {
         result <- .parse_gridss_sv_vcfr(vcf, fix, info_df)
     } else if (caller == "delly") {
