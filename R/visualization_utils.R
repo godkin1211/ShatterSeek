@@ -245,6 +245,29 @@ get_chromosome_sizes <- function() {
 }
 
 
+#' Get centromere positions
+#'
+#' Returns approximate centromere positions (hg19) for karyogram visualization.
+#'
+#' @return Data frame with chrom, size, centromere columns
+#' @keywords internal
+get_centromere_positions <- function() {
+    data.frame(
+        chrom = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
+                 "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X"),
+        size = c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067,
+                159138663, 146364022, 141213431, 135534747, 135006516, 133851895,
+                115169878, 107349540, 102531392, 90354753, 81195210, 78077248,
+                59128983, 63025520, 48129895, 51304566, 155270560),
+        centromere = c(125000000, 93300000, 91000000, 50400000, 48400000, 61000000,
+                      59900000, 45600000, 49000000, 40200000, 53700000, 35800000,
+                      17900000, 17600000, 19000000, 36600000, 24000000, 17200000,
+                      26500000, 27500000, 13200000, 14700000, 60600000),
+        stringsAsFactors = FALSE
+    )
+}
+
+
 #' Format genomic position for axis labels
 #'
 #' Converts genomic positions to human-readable format (Mb).

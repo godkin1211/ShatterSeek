@@ -117,31 +117,79 @@ plot_genome_ideogram <- function(chromoanagenesis_result, sample_name = "") {
     # Extract mechanism information per chromosome
     mech_summary <- get_chromosome_mechanism_summary(chromoanagenesis_result)
 
-    if (nrow(mech_summary) == 0) {
-        # No events detected
-        p <- ggplot2::ggplot() +
-            ggplot2::annotate("text", x = 0.5, y = 0.5,
-                            label = "No chromoanagenesis events detected",
-                            size = 6, color = "gray50") +
-            ggplot2::theme_void()
-        return(p)
-    }
+    # Get all chromosome info for ideogram
+    centro_data <- get_centromere_positions()
+
+    # Merge mechanism data with chromosome data
+    chr_data <- merge(centro_data, mech_summary, by = "chrom", all.x = TRUE)
+
+    # Fill in missing values for chromosomes without events
+    chr_data$dominant_mechanism[is.na(chr_data$dominant_mechanism)] <- "none"
+    chr_data$n_events[is.na(chr_data$n_events)] <- 0
+
+    # Normalize sizes for visualization (scale to max = 1)
+    max_size <- max(chr_data$size)
+    chr_data$norm_size <- chr_data$size / max_size
+    chr_data$norm_centro <- chr_data$centromere / chr_data$size
 
     # Create chromosome ordering (1-22, X)
-    chr_order <- sort_chromosomes(unique(mech_summary$chrom))
-    mech_summary$chrom <- factor(mech_summary$chrom, levels = chr_order)
+    chr_order <- sort_chromosomes(chr_data$chrom)
+    chr_data$chrom <- factor(chr_data$chrom, levels = chr_order)
 
-    # Create ideogram plot
-    p <- ggplot2::ggplot(mech_summary, ggplot2::aes(x = chrom, y = 1))
+    # Create karyogram layout (2 rows)
+    chr_data$row <- ifelse(as.numeric(chr_data$chrom) <= 12 | chr_data$chrom == "X", 1, 2)
+    chr_data$col <- ifelse(chr_data$row == 1,
+                           as.numeric(chr_data$chrom),
+                           as.numeric(chr_data$chrom) - 12)
+    chr_data$col[chr_data$chrom == "X"] <- 13
 
-    # Add chromosome rectangles
-    p <- p + ggplot2::geom_tile(ggplot2::aes(fill = dominant_mechanism),
-                               width = 0.8, height = 0.6,
-                               color = "gray30", size = 0.5)
+    # Calculate coordinates for chromosome shapes
+    chr_shapes <- list()
+    for (i in seq_len(nrow(chr_data))) {
+        chr <- chr_data$chrom[i]
+        col <- chr_data$col[i]
+        row_y <- 3 - chr_data$row[i]  # Invert so row 1 is at top
 
-    # Add event count labels
-    p <- p + ggplot2::geom_text(ggplot2::aes(label = n_events),
-                               color = "white", fontface = "bold", size = 4)
+        # Create p-arm (short arm) rectangle
+        p_arm <- data.frame(
+            chrom = chr,
+            xmin = col - 0.3,
+            xmax = col + 0.3,
+            ymin = row_y,
+            ymax = row_y + chr_data$norm_size[i] * chr_data$norm_centro[i] * 0.8,
+            arm = "p",
+            mechanism = chr_data$dominant_mechanism[i],
+            n_events = chr_data$n_events[i]
+        )
+
+        # Create centromere (constriction)
+        centro <- data.frame(
+            chrom = chr,
+            xmin = col - 0.15,
+            xmax = col + 0.15,
+            ymin = p_arm$ymax,
+            ymax = p_arm$ymax + 0.05,
+            arm = "centro",
+            mechanism = chr_data$dominant_mechanism[i],
+            n_events = chr_data$n_events[i]
+        )
+
+        # Create q-arm (long arm) rectangle
+        q_arm <- data.frame(
+            chrom = chr,
+            xmin = col - 0.3,
+            xmax = col + 0.3,
+            ymin = centro$ymax,
+            ymax = centro$ymax + chr_data$norm_size[i] * (1 - chr_data$norm_centro[i]) * 0.8,
+            arm = "q",
+            mechanism = chr_data$dominant_mechanism[i],
+            n_events = chr_data$n_events[i]
+        )
+
+        chr_shapes[[i]] <- rbind(p_arm, centro, q_arm)
+    }
+
+    chr_shapes_df <- do.call(rbind, chr_shapes)
 
     # Color scheme
     mechanism_colors <- c(
@@ -149,32 +197,56 @@ plot_genome_ideogram <- function(chromoanagenesis_result, sample_name = "") {
         "chromoplexy" = "#377EB8",
         "chromosynthesis" = "#4DAF4A",
         "mixed" = "#984EA3",
-        "none" = "gray80"
+        "none" = "gray90"
+    )
+
+    # Create ideogram plot
+    p <- ggplot2::ggplot(chr_shapes_df)
+
+    # Draw chromosome shapes
+    p <- p + ggplot2::geom_rect(
+        ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = mechanism),
+        color = "gray40", size = 0.3
+    )
+
+    # Add event count labels for chromosomes with events
+    label_data <- chr_data[chr_data$n_events > 0, ]
+    if (nrow(label_data) > 0) {
+        label_data$y_pos <- 3 - label_data$row + 0.4
+        p <- p + ggplot2::geom_text(
+            data = label_data,
+            ggplot2::aes(x = col, y = y_pos, label = n_events),
+            color = "black", fontface = "bold", size = 3.5
+        )
+    }
+
+    # Add chromosome labels
+    chr_data$y_label <- 3 - chr_data$row - 0.1
+    p <- p + ggplot2::geom_text(
+        data = chr_data,
+        ggplot2::aes(x = col, y = y_label, label = chrom),
+        size = 3, color = "gray30"
     )
 
     p <- p + ggplot2::scale_fill_manual(
         values = mechanism_colors,
         name = "Mechanism",
-        na.value = "gray80"
+        na.value = "gray90"
     )
 
     # Theme and labels
     p <- p + ggplot2::labs(
-        title = "Genome-Wide Chromoanagenesis Events",
-        subtitle = ifelse(sample_name != "", sample_name, ""),
-        x = "Chromosome",
-        y = ""
+        title = "Genome-Wide Chromoanagenesis Events (Karyogram)",
+        subtitle = ifelse(sample_name != "", sample_name, "")
     ) +
-    ggplot2::theme_minimal() +
+    ggplot2::theme_void() +
     ggplot2::theme(
-        axis.text.y = ggplot2::element_blank(),
-        axis.ticks.y = ggplot2::element_blank(),
-        panel.grid.major.y = ggplot2::element_blank(),
-        panel.grid.minor = ggplot2::element_blank(),
         legend.position = "right",
-        plot.title = ggplot2::element_text(face = "bold", size = 14),
-        axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5)
-    )
+        plot.title = ggplot2::element_text(face = "bold", size = 14, hjust = 0.5),
+        plot.subtitle = ggplot2::element_text(size = 11, hjust = 0.5),
+        plot.margin = ggplot2::margin(10, 10, 10, 10)
+    ) +
+    ggplot2::coord_fixed(ratio = 0.5)
 
     return(p)
 }
