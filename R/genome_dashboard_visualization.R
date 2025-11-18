@@ -13,6 +13,8 @@
 #' genome-wide patterns of chromoanagenesis events.
 #'
 #' @param chromoanagenesis_result Result from detect_chromoanagenesis()
+#' @param SV.sample Original SV data (SVs object or data frame)
+#' @param CNV.sample Original CNV data (CNVsegs object or data frame)
 #' @param sample_name Sample identifier for plot title
 #' @param include_panels Vector of panel names to include:
 #'   "ideogram", "sv_density", "cn_profile", "mechanism_dist"
@@ -22,10 +24,13 @@
 #' @examples
 #' \dontrun{
 #' results <- detect_chromoanagenesis(sv_data, cnv_data)
-#' dashboard <- plot_genome_dashboard(results, sample_name = "Patient_001")
+#' dashboard <- plot_genome_dashboard(results, sv_data, cnv_data,
+#'                                    sample_name = "Patient_001")
 #' print(dashboard)
 #' }
 plot_genome_dashboard <- function(chromoanagenesis_result,
+                                  SV.sample = NULL,
+                                  CNV.sample = NULL,
                                   sample_name = "",
                                   include_panels = c("ideogram", "sv_density",
                                                     "cn_profile", "mechanism_dist")) {
@@ -42,6 +47,14 @@ plot_genome_dashboard <- function(chromoanagenesis_result,
         stop("Input must be a chromoanagenesis result object from detect_chromoanagenesis()")
     }
 
+    # Convert S4 objects to data frames if needed
+    if (!is.null(SV.sample) && is(SV.sample, "SVs")) {
+        SV.sample <- as(SV.sample, "data.frame")
+    }
+    if (!is.null(CNV.sample) && is(CNV.sample, "CNVsegs")) {
+        CNV.sample <- as(CNV.sample, "data.frame")
+    }
+
     plots <- list()
 
     # Panel 1: Genome ideogram with mechanism overlay
@@ -51,12 +64,12 @@ plot_genome_dashboard <- function(chromoanagenesis_result,
 
     # Panel 2: SV density heatmap
     if ("sv_density" %in% include_panels) {
-        plots$sv_density <- plot_sv_density_heatmap(chromoanagenesis_result)
+        plots$sv_density <- plot_sv_density_heatmap(SV.sample)
     }
 
     # Panel 3: Genome-wide CN profile
     if ("cn_profile" %in% include_panels) {
-        plots$cn_profile <- plot_genome_wide_cn(chromoanagenesis_result)
+        plots$cn_profile <- plot_genome_wide_cn(CNV.sample, chromoanagenesis_result)
     }
 
     # Panel 4: Mechanism distribution
@@ -172,17 +185,21 @@ plot_genome_ideogram <- function(chromoanagenesis_result, sample_name = "") {
 #' Creates a heatmap showing the density of different SV types
 #' across chromosomes.
 #'
-#' @param chromoanagenesis_result Chromoanagenesis results
+#' @param SV.sample SV data (SVs object or data frame)
 #' @return ggplot2 object
 #' @export
-plot_sv_density_heatmap <- function(chromoanagenesis_result) {
+plot_sv_density_heatmap <- function(SV.sample) {
 
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
         stop("Package 'ggplot2' is required.")
     }
 
-    # Extract SV data
-    sv_data <- chromoanagenesis_result$SV_data
+    # Convert S4 object if needed
+    if (!is.null(SV.sample) && is(SV.sample, "SVs")) {
+        sv_data <- as(SV.sample, "data.frame")
+    } else {
+        sv_data <- SV.sample
+    }
 
     if (is.null(sv_data) || nrow(sv_data) == 0) {
         p <- ggplot2::ggplot() +
@@ -243,17 +260,22 @@ plot_sv_density_heatmap <- function(chromoanagenesis_result) {
 #'
 #' Creates a linear plot showing copy number across all chromosomes.
 #'
-#' @param chromoanagenesis_result Chromoanagenesis results
+#' @param CNV.sample CNV data (CNVsegs object or data frame)
+#' @param chromoanagenesis_result Chromoanagenesis results (for annotation)
 #' @return ggplot2 object
 #' @export
-plot_genome_wide_cn <- function(chromoanagenesis_result) {
+plot_genome_wide_cn <- function(CNV.sample, chromoanagenesis_result = NULL) {
 
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
         stop("Package 'ggplot2' is required.")
     }
 
-    # Extract CNV data
-    cnv_data <- chromoanagenesis_result$CNV_data
+    # Convert S4 object if needed
+    if (!is.null(CNV.sample) && is(CNV.sample, "CNVsegs")) {
+        cnv_data <- as(CNV.sample, "data.frame")
+    } else {
+        cnv_data <- CNV.sample
+    }
 
     if (is.null(cnv_data) || nrow(cnv_data) == 0) {
         p <- ggplot2::ggplot() +
@@ -271,11 +293,16 @@ plot_genome_wide_cn <- function(chromoanagenesis_result) {
     # Calculate cumulative genomic positions for linear view
     cnv_data_linear <- calculate_linear_positions(cnv_data)
 
-    # Identify chromoanagenesis regions
-    cnv_data_linear <- annotate_chromoanagenesis_regions(
-        cnv_data_linear,
-        chromoanagenesis_result
-    )
+    # Identify chromoanagenesis regions (if result provided)
+    if (!is.null(chromoanagenesis_result)) {
+        cnv_data_linear <- annotate_chromoanagenesis_regions(
+            cnv_data_linear,
+            chromoanagenesis_result
+        )
+    } else {
+        # No annotation available
+        cnv_data_linear$has_chromoanagenesis <- FALSE
+    }
 
     # Create CN profile plot
     p <- ggplot2::ggplot(cnv_data_linear)
