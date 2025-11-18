@@ -235,17 +235,17 @@ extract_breakpoint_sequences <- function(sv_df, genome, flank_size) {
     # Convert to data frame
     sequences_df <- do.call(rbind, lapply(sequences, function(x) {
         data.frame(
-            sv_id = x$sv_id,
-            has_sequence = x$has_sequence,
-            bp1_left = ifelse(is.null(x$bp1_left), NA, x$bp1_left),
-            bp1_right = ifelse(is.null(x$bp1_right), NA, x$bp1_right),
-            bp2_left = ifelse(is.null(x$bp2_left), NA, x$bp2_left),
-            bp2_right = ifelse(is.null(x$bp2_right), NA, x$bp2_right),
-            chrom1 = x$chrom1,
-            pos1 = x$pos1,
-            chrom2 = x$chrom2,
-            pos2 = x$pos2,
-            SVtype = x$SVtype,
+            sv_id = as.integer(x$sv_id),
+            has_sequence = as.logical(x$has_sequence),
+            bp1_left = as.character(ifelse(is.null(x$bp1_left), NA, x$bp1_left)),
+            bp1_right = as.character(ifelse(is.null(x$bp1_right), NA, x$bp1_right)),
+            bp2_left = as.character(ifelse(is.null(x$bp2_left), NA, x$bp2_left)),
+            bp2_right = as.character(ifelse(is.null(x$bp2_right), NA, x$bp2_right)),
+            chrom1 = as.character(x$chrom1),
+            pos1 = as.numeric(x$pos1),
+            chrom2 = as.character(x$chrom2),
+            pos2 = as.numeric(x$pos2),
+            SVtype = as.character(x$SVtype),
             stringsAsFactors = FALSE
         )
     }))
@@ -354,10 +354,10 @@ detect_microhomology <- function(bp_sequences, min_length = 2, max_length = 25) 
     # Convert to data frame
     mh_df <- do.call(rbind, lapply(microhomology, function(x) {
         data.frame(
-            sv_id = x$sv_id,
-            has_microhomology = ifelse(is.na(x$has_microhomology), NA, x$has_microhomology),
-            microhomology_length = ifelse(is.na(x$microhomology_length), NA, x$microhomology_length),
-            microhomology_seq = ifelse(is.na(x$microhomology_seq), NA, x$microhomology_seq),
+            sv_id = as.integer(x$sv_id),
+            has_microhomology = as.logical(x$has_microhomology),
+            microhomology_length = as.numeric(x$microhomology_length),
+            microhomology_seq = as.character(x$microhomology_seq),
             stringsAsFactors = FALSE
         )
     }))
@@ -431,11 +431,11 @@ detect_insertions <- function(bp_sequences) {
     # Convert to data frame
     ins_df <- do.call(rbind, lapply(insertions, function(x) {
         data.frame(
-            sv_id = x$sv_id,
-            has_insertion = x$has_insertion,
-            insertion_length = x$insertion_length,
-            insertion_seq = x$insertion_seq,
-            insertion_type = x$insertion_type,
+            sv_id = as.integer(x$sv_id),
+            has_insertion = as.logical(x$has_insertion),
+            insertion_length = as.numeric(x$insertion_length),
+            insertion_seq = as.character(x$insertion_seq),
+            insertion_type = as.character(x$insertion_type),
             stringsAsFactors = FALSE
         )
     }))
@@ -509,10 +509,10 @@ classify_repair_mechanisms <- function(microhomology, insertions, sv_df) {
     # Convert to data frame
     mech_df <- do.call(rbind, lapply(mechanisms, function(x) {
         data.frame(
-            sv_id = x$sv_id,
-            repair_mechanism = x$repair_mechanism,
-            confidence = x$confidence,
-            evidence = x$evidence,
+            sv_id = as.integer(x$sv_id),
+            repair_mechanism = as.character(x$repair_mechanism),
+            confidence = as.character(x$confidence),
+            evidence = as.character(x$evidence),
             stringsAsFactors = FALSE
         )
     }))

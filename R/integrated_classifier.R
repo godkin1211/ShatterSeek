@@ -210,13 +210,13 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
 
     df <- do.call(rbind, lapply(locations, function(x) {
         data.frame(
-            mechanism = x$mechanism,
-            chrom = x$chrom,
-            start = ifelse(is.na(x$start), NA, x$start),
-            end = ifelse(is.na(x$end), NA, x$end),
-            confidence = x$confidence,
-            classification = x$classification,
-            event_id = x$event_id,
+            mechanism = as.character(x$mechanism),
+            chrom = as.character(x$chrom),
+            start = as.numeric(x$start),
+            end = as.numeric(x$end),
+            confidence = as.numeric(x$confidence),
+            classification = as.character(x$classification),
+            event_id = as.character(x$event_id),
             stringsAsFactors = FALSE
         )
     }))
@@ -308,15 +308,15 @@ detect_mechanism_overlaps <- function(mechanism_locations, overlap_threshold) {
 
     overlaps_df <- do.call(rbind, lapply(overlaps, function(x) {
         data.frame(
-            chrom = x$chrom,
-            mechanism1 = x$mechanism1,
-            mechanism2 = x$mechanism2,
-            event_id1 = x$event_id1,
-            event_id2 = x$event_id2,
-            overlap_size = ifelse(is.na(x$overlap_size), NA, x$overlap_size),
-            confidence1 = x$confidence1,
-            confidence2 = x$confidence2,
-            mechanism_pair = paste(sort(c(x$mechanism1, x$mechanism2)), collapse = "+"),
+            chrom = as.character(x$chrom),
+            mechanism1 = as.character(x$mechanism1),
+            mechanism2 = as.character(x$mechanism2),
+            event_id1 = as.character(x$event_id1),
+            event_id2 = as.character(x$event_id2),
+            overlap_size = as.numeric(x$overlap_size),
+            confidence1 = as.numeric(x$confidence1),
+            confidence2 = as.numeric(x$confidence2),
+            mechanism_pair = as.character(paste(sort(c(x$mechanism1, x$mechanism2)), collapse = "+")),
             stringsAsFactors = FALSE
         )
     }))
@@ -383,12 +383,12 @@ classify_by_chromosome <- function(mechanism_locations, overlaps) {
     # Convert to data frame
     chr_class_df <- do.call(rbind, lapply(chr_class, function(x) {
         data.frame(
-            chrom = x$chrom,
-            mechanisms = x$mechanisms,
-            dominant_mechanism = x$dominant_mechanism,
-            is_mixed = x$is_mixed,
-            n_mechanisms = x$n_mechanisms,
-            max_confidence = x$max_confidence,
+            chrom = as.character(x$chrom),
+            mechanisms = as.character(x$mechanisms),
+            dominant_mechanism = as.character(x$dominant_mechanism),
+            is_mixed = as.logical(x$is_mixed),
+            n_mechanisms = as.numeric(x$n_mechanisms),
+            max_confidence = as.numeric(x$max_confidence),
             stringsAsFactors = FALSE
         )
     }))
