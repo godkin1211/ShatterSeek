@@ -101,7 +101,7 @@ detect_chromoanagenesis <- function(SV.sample,
             cat("\nStep 2: Detecting chromothripsis...\n")
         }
 
-        chromothripsis_result <- shatterseek(
+        chromothripsis_result <- detect_chromothripsis(
             SV.sample = SV.sample,
             seg.sample = CNV.sample,
             min.Size = min_chromothripsis_size,
@@ -113,7 +113,7 @@ detect_chromoanagenesis <- function(SV.sample,
         chromothripsis_classification <- classify_chromothripsis(chromothripsis_result)
 
         results$chromothripsis <- list(
-            shatterseek_output = chromothripsis_result,
+            detection_output = chromothripsis_result,
             classification = chromothripsis_classification,
             n_likely = sum(chromothripsis_classification$classification == "Likely chromothripsis"),
             n_possible = sum(chromothripsis_classification$classification == "Possible chromothripsis")

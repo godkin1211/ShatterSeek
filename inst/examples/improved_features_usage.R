@@ -39,14 +39,14 @@ print(quality_report)
 ##############################################################################
 ## 2. Run ShatterSeek with Improved Validation
 ##############################################################################
-## The shatterseek function now includes:
+## The detect_chromothripsis function now includes:
 ## - SVtype-strand consistency validation
 ## - CNV data completeness checks
 ## - Warnings for data quality issues
 
-chromothripsis <- shatterseek(SV.sample=SV_data,
-                              seg.sample=CN_data,
-                              genome="hg19")
+chromothripsis <- detect_chromothripsis(SV.sample=SV_data,
+                                        seg.sample=CN_data,
+                                        genome="hg19")
 
 # View basic results
 print(chromothripsis)
@@ -121,11 +121,11 @@ complete_analysis <- function(SV_data, CN_data, sample_name = "Sample") {
         cat("Data quality: OK\n\n")
     }
 
-    # Step 2: Run ShatterSeek
-    cat("Step 2: Running ShatterSeek...\n")
-    results <- shatterseek(SV.sample = SV_data,
-                          seg.sample = CN_data,
-                          genome = "hg19")
+    # Step 2: Run chromothripsis detection
+    cat("Step 2: Running chromothripsis detection...\n")
+    results <- detect_chromothripsis(SV.sample = SV_data,
+                                     seg.sample = CN_data,
+                                     genome = "hg19")
     cat("\n")
 
     # Step 3: Calculate confidence scores
@@ -149,7 +149,7 @@ complete_analysis <- function(SV_data, CN_data, sample_name = "Sample") {
 
     # Return all results
     return(list(
-        shatterseek_output = results,
+        detection_output = results,
         confidence_scores = scores,
         classifications = classifications,
         summary = summary,
@@ -178,7 +178,7 @@ if (length(likely_chroms) > 0) {
     for (chr in likely_chroms) {
         cat(sprintf("\nPlotting %s...\n", chr))
         plots <- plot_chromothripsis(
-            ShatterSeek_output = analysis_results$shatterseek_output,
+            ShatterSeek_output = analysis_results$detection_output,
             chr = chr,
             sample_name = "DO17373",
             genome = "hg19"

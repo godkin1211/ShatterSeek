@@ -299,7 +299,7 @@ if (results$chromothripsis$n_likely > 0 &&
 # 5. Visualize
 # Chromothripsis
 for (chr in results$chromothripsis$classification$chrom) {
-    plot_chromothripsis(results$chromothripsis$shatterseek_output,
+    plot_chromothripsis(results$chromothripsis$detection_output,
                        chr=chr)
 }
 

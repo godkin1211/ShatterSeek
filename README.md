@@ -95,7 +95,7 @@ CN_data <- CNVsegs(
 )
 
 # Run chromothripsis detection
-chromothripsis <- shatterseek(
+chromothripsis <- detect_chromothripsis(
     SV.sample = SV_data,
     seg.sample = CN_data,
     genome = "hg19"
@@ -172,7 +172,7 @@ plot_breakpoint_report(bp_analysis, SV_data, sample_name = "Sample_01")
 
 ```R
 # Standard detection
-chromothripsis <- shatterseek(SV_data, CN_data, genome = "hg19")
+chromothripsis <- detect_chromothripsis(SV_data, CN_data, genome = "hg19")
 
 # Calculate confidence scores
 scores <- calculate_confidence_score(chromothripsis@chromSummary)
@@ -268,7 +268,7 @@ plot_breakpoint_report(bp_analysis, SV_data, "Sample_01")
 
 ### Data Preparation
 
-1. **Minimum cluster size**: The `min.Size` parameter in `shatterseek()` defaults to 1. This ensures detection of chromothripsis events that might involve linked clusters across multiple chromosomes.
+1. **Minimum cluster size**: The `min.Size` parameter in `detect_chromothripsis()` defaults to 1. This ensures detection of chromothripsis events that might involve linked clusters across multiple chromosomes.
 
 2. **CNV segment merging**: ShatterSeek expects adjacent CNV segments to have different copy numbers. Merge adjacent segments with identical copy numbers using:
 

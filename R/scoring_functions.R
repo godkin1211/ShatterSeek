@@ -162,7 +162,7 @@ calculate_confidence_score <- function(chromSummary, chr = NULL) {
 #' Applies evidence-based thresholds to classify chromosomes as likely
 #' chromothripsis, possible chromothripsis, or unlikely chromothripsis.
 #'
-#' @param chromoth_output Output from shatterseek function
+#' @param chromoth_output Output from detect_chromothripsis function
 #' @param min_cluster_size Minimum number of SVs required (default: 6)
 #' @param min_cn_oscillations Minimum CN oscillating segments (default: 4)
 #' @param max_pval_clustering Maximum p-value for clustering test (default: 0.05)
@@ -242,7 +242,7 @@ classify_chromothripsis <- function(chromoth_output,
 #' Creates a human-readable summary of chromothripsis detection results,
 #' highlighting high-confidence events and providing interpretation guidance.
 #'
-#' @param chromoth_output Output from shatterseek function
+#' @param chromoth_output Output from detect_chromothripsis function
 #' @param print_summary Logical, whether to print summary to console (default: TRUE)
 #' @return A list containing summary statistics and classifications
 #' @export

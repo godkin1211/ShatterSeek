@@ -72,7 +72,7 @@ breaks1= SVsnow_exp$pos1[idx_inter1]  # Fixed: was pos2
 
 **Usage**:
 ```r
-chromothripsis <- shatterseek(SV_data, CN_data)
+chromothripsis <- detect_chromothripsis(SV_data, CN_data)
 scores <- calculate_confidence_score(chromothripsis@chromSummary)
 ```
 
@@ -179,8 +179,8 @@ CN_data <- CNVsegs(chrom=SCNA_DO17373$chromosome, ...)
 # Check data quality first
 check_data_quality(SV_data, CN_data)
 
-# Run ShatterSeek (with enhanced validation)
-results <- shatterseek(SV_data, CN_data, genome="hg19")
+# Run chromothripsis detection (with enhanced validation)
+results <- detect_chromothripsis(SV_data, CN_data, genome="hg19")
 
 # Get confidence scores
 scores <- calculate_confidence_score(results@chromSummary)

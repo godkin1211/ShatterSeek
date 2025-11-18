@@ -24,7 +24,7 @@ import(foreach)
 
 import(graph)
 
-export(shatterseek,SVs,CNVsegs,plot_chromothripsis,
+export(detect_chromothripsis,SVs,CNVsegs,plot_chromothripsis,
        calculate_confidence_score,classify_chromothripsis,
        summarize_chromothripsis,check_data_quality,
        detect_chromoplexy,plot_chromoplexy,plot_chromoplexy_circular,

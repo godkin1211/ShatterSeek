@@ -6,7 +6,7 @@
 #' @param SVtype (character): type of SV, encoded as: DEL (deletion-like; +/-), DUP (duplication-like; -/+), h2hINV (head-to-head inversion; +/+), and t2tINV (tail-to-tail inversion; -/-).
 #' @param strand1 (e.g. + for DEL)
 #' @param strand2 (e.g. - for DEL)
-#' @return an instance of the class 'SVs' that contains SV data. Required format by the function shatterseek
+#' @return an instance of the class 'SVs' that contains SV data. Required format by the function detect_chromothripsis
 #' @export
 
 SVs <- setClass("SVs",
@@ -73,7 +73,7 @@ setAs("SVs","data.frame",function(from, to){
 #' @param start (numeric): start position for the CN segment
 #' @param end (numeric): end position for the CN segment
 #' @param CN (numeric): integer total copy number (e.g. 2 for unaltered chromosomal regions)
-#' @return an instance of the class 'CNVsegs' that contains CNV data. Required format by the function shatterseek
+#' @return an instance of the class 'CNVsegs' that contains CNV data. Required format by the function detect_chromothripsis
 #' @export
 CNVsegs = setClass("CNVsegs",
 				   representation(
@@ -213,14 +213,14 @@ cluster.SV = function(SV.sample,min.Size=1,chromNames){
 	return(rt.value)
 }
 
-#' Main ShatterSeek function
-#' Identified cluster of interleaved SVs and calculates statistical metrics for each chromosome (chromosomes 1-22 and X)
+#' Detect chromothripsis events from structural variation data
+#' Identifies clusters of interleaved SVs and calculates statistical metrics for each chromosome (chromosomes 1-22 and X)
 #' @param SV.sample an instance of class SVs
 #' @param seg.sample an instance of class CNVsegs
-#' @param min.Size minimum number of inleaved SVs required to report a cluster. Default is 3
+#' @param min.Size minimum number of interleaved SVs required to report a cluster. Default is 1
 #' @param genome reference genome (hg19 or hg38)
 #' @export
-shatterseek = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
+detect_chromothripsis = function(SV.sample,seg.sample,min.Size=1, genome="hg19"){
 	cat("Running..\n\n\n")
 	if(!is(SV.sample,"SVs")){stop("SV.sample must be a SVs object")}
 	if(!missing(seg.sample)){

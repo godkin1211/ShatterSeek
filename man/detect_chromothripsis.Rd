@@ -1,15 +1,16 @@
-\name{shatterseek}
-\alias{shatterseek}
+\name{detect_chromothripsis}
+\alias{detect_chromothripsis}
 
-\title{The main function of the package shatterSeek}
+\title{Detect chromothripsis events from structural variation data}
 
 \description{
-	Detect chromothripsis events from structural variations and copy number variation data
+	Detect chromothripsis events from structural variations and copy number variation data.
+	Identifies clusters of interleaved SVs and calculates statistical metrics for each chromosome.
 }
 
-\usage{ 
-shatterseek(SV.sample,seg.sample, min.Size = 3, genome = "hg19")
-} 
+\usage{
+detect_chromothripsis(SV.sample, seg.sample, min.Size = 1, genome = "hg19")
+}
 \arguments{
 	\item{SV.sample}{
 		A \link{SVs} object that stores all the structural variations of the sample.
@@ -20,7 +21,7 @@ shatterseek(SV.sample,seg.sample, min.Size = 3, genome = "hg19")
 		A \link{CNVsegs} object that contains the copy number segmentation results for the sample.
 	}
 	\item{min.Size}{
-		Minimum number of inleaved SVs required to report a cluster. Default is 3.
+		Minimum number of interleaved SVs required to report a cluster. Default is 1.
 	}
 	\item{genome}{
 		Reference human genome assembly. hg19 or hg38 (Default is hg19).
@@ -29,7 +30,7 @@ shatterseek(SV.sample,seg.sample, min.Size = 3, genome = "hg19")
 
 
 \value{
-	A \link{chromoth} object. 
+	A \link{chromoth} object.
 }
 
 \seealso{ \link{plot_chromothripsis}
@@ -41,11 +42,11 @@ shatterseek(SV.sample,seg.sample, min.Size = 3, genome = "hg19")
 
 \examples{
 data(DO17373)
-SV_data <- SVs(chrom1=as.character(SV_DO17373$chrom1), 
+SV_data <- SVs(chrom1=as.character(SV_DO17373$chrom1),
 			   pos1=as.numeric(SV_DO17373$start1),
-			   chrom2=as.character(SV_DO17373$chrom2), 
+			   chrom2=as.character(SV_DO17373$chrom2),
 			   pos2=as.numeric(SV_DO17373$end2),
-			   SVtype=as.character(SV_DO17373$svclass), 
+			   SVtype=as.character(SV_DO17373$svclass),
 			   strand1=as.character(SV_DO17373$strand1),
 			   strand2=as.character(SV_DO17373$strand2))
 
@@ -54,10 +55,10 @@ CN_data <- CNVsegs(chrom=as.character(SCNA_DO17373$chromosome),
 				   end=SCNA_DO17373$end,
 				   total_cn=SCNA_DO17373$total_cn)
 
-chromothripsis <- shatterseek(SV.sample=SV_data,
-                seg.sample=CN_data, 
+chromothripsis <- detect_chromothripsis(SV.sample=SV_data,
+                seg.sample=CN_data,
                 genome="hg19")
-plots_chr3 <- plot_chromothripsis(ShatterSeek_output = chromothripsis, 
+plots_chr3 <- plot_chromothripsis(ShatterSeek_output = chromothripsis,
               chr = "chr3",
               sample_name="DO17373",
               genome="hg19")

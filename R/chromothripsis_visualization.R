@@ -3,7 +3,7 @@
 #' in order to facilitate the revision of 
 #' candidate chromothripsis regions
 #' 
-#' @param ShatterSeek_output the output of the function shatterseek
+#' @param ShatterSeek_output the output of the function detect_chromothripsis
 #' @param chr chromosome for which the plot will be generated (note that only the region where there is a cluster of interleaved SVs will be shown)
 #' @param BAF B allele frequencies (BAF)
 #' @param sample_name name of the sample to be shown in the table
