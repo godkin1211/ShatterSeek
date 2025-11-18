@@ -560,6 +560,38 @@
         }
     }
 
+    # Parse BND ALT field if SVTYPE=BND and chrom2/pos2 not set
+    is_bnd <- svtype == "BND"
+    if (any(is_bnd)) {
+        alt <- as.character(VariantAnnotation::alt(vcf))
+
+        for (i in which(is_bnd)) {
+            # Only parse ALT if we don't have chrom2/pos2 from INFO
+            if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+                alt_str <- alt[i]
+
+                # Parse bracket notation: ]chr:pos] or [chr:pos[
+                # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
+                pattern <- "([\\[\\]])([^:]+):([0-9]+)([\\[\\]])"
+                match <- regexec(pattern, alt_str)
+                if (match[[1]][1] != -1) {
+                    matches <- regmatches(alt_str, match)[[1]]
+                    if (length(matches) >= 4) {
+                        # Extract chromosome and position
+                        mate_chr <- matches[3]
+                        mate_pos <- as.numeric(matches[4])
+
+                        # Remove "chr" prefix if present
+                        mate_chr <- gsub("^chr", "", mate_chr, ignore.case = TRUE)
+
+                        chrom2[i] <- mate_chr
+                        pos2[i] <- mate_pos
+                    }
+                }
+            }
+        }
+    }
+
     # Infer strands from SVTYPE
     strand1 <- rep("+", length(svtype))
     strand2 <- rep("-", length(svtype))
@@ -619,6 +651,38 @@
         if (field %in% colnames(info_df)) {
             pos2 <- as.numeric(info_df[, field])
             break
+        }
+    }
+
+    # Parse BND ALT field if SVTYPE=BND and chrom2/pos2 not set
+    is_bnd <- svtype == "BND"
+    if (any(is_bnd)) {
+        alt <- fix[, "ALT"]
+
+        for (i in which(is_bnd)) {
+            # Only parse ALT if we don't have chrom2/pos2 from INFO
+            if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+                alt_str <- alt[i]
+
+                # Parse bracket notation: ]chr:pos] or [chr:pos[
+                # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
+                pattern <- "([\\[\\]])([^:]+):([0-9]+)([\\[\\]])"
+                match <- regexec(pattern, alt_str)
+                if (match[[1]][1] != -1) {
+                    matches <- regmatches(alt_str, match)[[1]]
+                    if (length(matches) >= 4) {
+                        # Extract chromosome and position
+                        mate_chr <- matches[3]
+                        mate_pos <- as.numeric(matches[4])
+
+                        # Remove "chr" prefix if present
+                        mate_chr <- gsub("^chr", "", mate_chr, ignore.case = TRUE)
+
+                        chrom2[i] <- mate_chr
+                        pos2[i] <- mate_pos
+                    }
+                }
+            }
         }
     }
 
