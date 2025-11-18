@@ -1,6 +1,6 @@
-# ShatterSeek Improvements
+# ShatterSeek Extended Edition - Improvements
 
-This document describes the improvements made to ShatterSeek to enhance chromothripsis detection accuracy and usability.
+This document describes the improvements and enhancements made in ShatterSeek Extended Edition to enhance chromoanagenesis detection accuracy, add new detection modules, and improve usability.
 
 ## Short-term Improvements (Bug Fixes)
 

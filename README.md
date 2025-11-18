@@ -93,14 +93,14 @@ ShatterSeek requires R (>= 3.0.1) and depends on:
 
 ### From GitHub
 ```bash
-$ git clone https://github.com/parklab/ShatterSeek.git
+$ git clone https://github.com/godkin1211/ShatterSeek.git
 $ R CMD INSTALL ShatterSeek
 ```
 
 ### Using devtools
 ```R
 library(devtools)
-install_github("parklab/ShatterSeek")
+install_github("godkin1211/ShatterSeek")
 ```
 
 ## Quick Start
@@ -607,7 +607,7 @@ If you use **ShatterSeek Extended** in your research, please cite:
 
 **For the extended edition (chromoplexy, chromosynthesis, visualization, VCF support):**
 > ShatterSeek Extended Edition (v2.0+): Comprehensive chromoanagenesis detection and analysis.
-> GitHub: https://github.com/[your-repo]/ShatterSeek
+> GitHub: https://github.com/godkin1211/ShatterSeek
 > DOI: [To be assigned upon publication]
 
 **For the original chromothripsis detection framework:**
@@ -684,10 +684,10 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### For ShatterSeek Extended Edition (v2.0+)
 
 **Technical issues and feature requests:**
-- GitHub Issues: https://github.com/[your-repo]/ShatterSeek/issues
+- GitHub Issues: https://github.com/godkin1211/ShatterSeek/issues
 
 **Collaboration and contributions:**
-- Email: your.email@example.com
+- Email: n28111021@gs.ncku.edu.tw
 
 ### For Original ShatterSeek Framework
 

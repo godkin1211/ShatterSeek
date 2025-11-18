@@ -1,4 +1,4 @@
-# ShatterSeek Advanced Features Guide
+# ShatterSeek Extended Edition - Advanced Features Guide
 
 ## Table of Contents
 1. [Integrated Classifier for Mixed Mechanisms](#integrated-classifier)

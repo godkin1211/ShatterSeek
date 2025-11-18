@@ -1,6 +1,6 @@
-# Chromoplexy Detection in ShatterSeek
+# Chromoplexy Detection in ShatterSeek Extended Edition
 
-This guide describes the new chromoplexy detection functionality added to ShatterSeek, enabling comprehensive chromoanagenesis analysis.
+This guide describes the chromoplexy detection functionality in ShatterSeek Extended Edition, enabling comprehensive chromoanagenesis analysis beyond chromothripsis.
 
 ---
 
@@ -20,7 +20,7 @@ This guide describes the new chromoplexy detection functionality added to Shatte
 
 **Chromoplexy** is a complex chromosomal rearrangement pattern characterized by chained translocations across multiple chromosomes with minimal copy number changes. It represents a distinct mechanism of chromoanagenesis, different from chromothripsis.
 
-ShatterSeek now includes dedicated functionality to detect and visualize chromoplexy events, complementing its existing chromothripsis detection capabilities.
+ShatterSeek Extended Edition includes dedicated functionality to detect and visualize chromoplexy events, complementing the original chromothripsis detection capabilities.
 
 ### Key Features
 

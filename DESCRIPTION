@@ -6,22 +6,22 @@ Date: 2025-01-18
 Authors@R: c(
     person("Isidro", "Cortes-Ciriano", email = "isidrolauscher@gmail.com", role = c("aut", "cph")),
     person("Ruibin", "Xi", role = "aut"),
-    person("Extended Analysis Contributors", role = c("aut", "cre"), email = "your.email@example.com", comment = "Chromoplexy, chromosynthesis, advanced visualization, BND parsing"))
-Maintainer: Extended Analysis Contributors <your.email@example.com>
-Description: ShatterSeek detects and analyzes chromoanagenesis events (chromothripsis,
-    chromoplexy, chromosynthesis) from whole-genome sequencing data. Originally developed
-    for chromothripsis detection (Cortes-Ciriano et al., Nature Genetics 2020), this
-    extended version adds comprehensive multi-mechanism detection, advanced visualization
-    (genome dashboards, gGnome-style regional plots, circos plots), direct VCF input with
-    BND/translocation parsing, breakpoint sequence analysis, and integrated classification.
-    Supports multiple SV callers (Manta, Delly, DRAGEN, GRIDSS, LUMPY, Sniffles) and CNV
-    callers (CNVkit, GATK, Control-FREEC, Canvas).
+    person("Extended Analysis Contributors", role = c("aut", "cre"), email = "n28111021@gs.ncku.edu.tw", comment = "Chromoplexy, chromosynthesis, advanced visualization, BND parsing"))
+Maintainer: Extended Analysis Contributors <n28111021@gs.ncku.edu.tw>
+Description: ShatterSeek Extended Edition detects and analyzes chromoanagenesis events
+    (chromothripsis, chromoplexy, chromosynthesis) from whole-genome sequencing data.
+    Originally developed for chromothripsis detection (Cortes-Ciriano et al., Nature
+    Genetics 2020), this extended version adds comprehensive multi-mechanism detection,
+    advanced visualization (genome dashboards, gGnome-style regional plots, circos plots),
+    direct VCF input with BND/translocation parsing, breakpoint sequence analysis, and
+    integrated classification. Supports multiple SV callers (Manta, Delly, DRAGEN, GRIDSS,
+    LUMPY, Sniffles) and CNV callers (CNVkit, GATK, Control-FREEC, Canvas).
 Depends: R (>= 3.5.0), methods, BiocGenerics, foreach, graph, S4Vectors
 Imports: GenomicRanges, IRanges, MASS, ggplot2, grid, gridExtra
 Suggests: VariantAnnotation, vcfR, circlize, BSgenome.Hsapiens.UCSC.hg19, BSgenome.Hsapiens.UCSC.hg38
 License: GPL (>= 3)
-URL: https://github.com/parklab/ShatterSeek
-BugReports: https://github.com/parklab/ShatterSeek/issues
+URL: https://github.com/godkin1211/ShatterSeek
+BugReports: https://github.com/godkin1211/ShatterSeek/issues
 Repository: GitHub
 LazyData: no
 Encoding: UTF-8
