@@ -35,7 +35,7 @@ breaks1= SVsnow_exp$pos1[idx_inter1]  # Fixed: was pos2
 - Better error handling for edge cases
 
 ### 4. Added SVtype-Strand Consistency Validation
-**Location**: `R/shatterseek.R:236-264`
+**Location**: `R/chromothripsis_detection.R:236-264`
 
 **Feature**: New input validation that checks SV type matches expected strand combinations.
 
@@ -145,7 +145,7 @@ if (quality$has_issues) {
 ```
 
 ### 5. Enhanced CNV Data Handling
-**Location**: `R/shatterseek.R:266-307`
+**Location**: `R/chromothripsis_detection.R:266-307`
 
 **Improvements**:
 - Warns if CNV data is missing or empty
