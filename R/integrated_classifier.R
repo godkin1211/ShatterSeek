@@ -125,18 +125,31 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
 
         # Filter by confidence
         if (!is.null(chromoth) && nrow(chromoth) > 0) {
-            chromoth <- chromoth[!is.na(chromoth$confidence_score) &
-                                chromoth$confidence_score >= min_confidence, ]
+            # Check if confidence_score column exists
+            if ("confidence_score" %in% colnames(chromoth)) {
+                chromoth <- chromoth[!is.na(chromoth$confidence_score) &
+                                    chromoth$confidence_score >= min_confidence, ]
+            } else {
+                # No confidence score, keep all
+                chromoth <- chromoth
+            }
 
             if (nrow(chromoth) > 0) {
                 for (i in 1:nrow(chromoth)) {
+                    # Get confidence score if available
+                    confidence <- if ("confidence_score" %in% colnames(chromoth)) {
+                        as.numeric(chromoth$confidence_score[i])
+                    } else {
+                        0.8  # Default high confidence for chromothripsis
+                    }
+
                     # Chromothripsis affects whole chromosome, no specific start/end
                     locations[[length(locations) + 1]] <- list(
                         mechanism = "chromothripsis",
                         chrom = as.character(chromoth$chrom[i]),
                         start = NA_real_,  # Whole chromosome, no specific region
                         end = NA_real_,
-                        confidence = as.numeric(chromoth$confidence_score[i]),
+                        confidence = confidence,
                         classification = as.character(chromoth$classification[i]),
                         event_id = paste0("CT_", chromoth$chrom[i])
                     )
@@ -150,41 +163,52 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
         chromopl <- chromoanagenesis_result$chromoplexy$summary
 
         # Filter by classification
-        likely_possible <- chromopl[chromopl$classification %in%
-                                   c("Likely chromoplexy", "Possible chromoplexy"), ]
+        if (!is.null(chromopl) && nrow(chromopl) > 0) {
+            likely_possible <- chromopl[chromopl$classification %in%
+                                       c("Likely chromoplexy", "Possible chromoplexy"), ]
 
-        if (nrow(likely_possible) > 0) {
-            for (i in 1:nrow(likely_possible)) {
-                # Get chromosomes involved
-                chroms_str <- as.character(likely_possible$chromosomes_involved[i])
+            if (nrow(likely_possible) > 0) {
+                for (i in 1:nrow(likely_possible)) {
+                    # Get chromosomes involved
+                    chroms_str <- as.character(likely_possible$chromosomes_involved[i])
 
-                # Skip if NA or empty
-                if (is.na(chroms_str) || chroms_str == "" || nchar(chroms_str) == 0) {
-                    next
-                }
+                    # Skip if NA or empty
+                    if (is.na(chroms_str) || chroms_str == "" || nchar(chroms_str) == 0) {
+                        next
+                    }
 
-                chroms <- unlist(strsplit(chroms_str, ","))
-                chroms <- trimws(chroms)
+                    chroms <- unlist(strsplit(chroms_str, ","))
+                    chroms <- trimws(chroms)
 
-                # Remove empty strings
-                chroms <- chroms[chroms != "" & !is.na(chroms)]
+                    # Remove empty strings
+                    chroms <- chroms[chroms != "" & !is.na(chroms)]
 
-                # Skip if no valid chromosomes
-                if (length(chroms) == 0) {
-                    next
-                }
+                    # Skip if no valid chromosomes
+                    if (length(chroms) == 0) {
+                        next
+                    }
 
-                # For each chromosome in the chain
-                for (chr in chroms) {
-                    locations[[length(locations) + 1]] <- list(
-                        mechanism = "chromoplexy",
-                        chrom = as.character(chr),
-                        start = NA_real_,  # Chromoplexy doesn't have single region
-                        end = NA_real_,
-                        confidence = as.numeric(likely_possible$confidence_score[i]),
-                        classification = as.character(likely_possible$classification[i]),
-                        event_id = paste0("CP_", likely_possible$chain_id[i])
-                    )
+                    # Get confidence score if available
+                    confidence <- if ("confidence_score" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$confidence_score[i])
+                    } else if ("complexity_score" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$complexity_score[i])
+                    } else {
+                        0.7  # Default confidence for chromoplexy
+                    }
+
+                    # For each chromosome in the chain
+                    for (chr in chroms) {
+                        locations[[length(locations) + 1]] <- list(
+                            mechanism = "chromoplexy",
+                            chrom = as.character(chr),
+                            start = NA_real_,  # Chromoplexy doesn't have single region
+                            end = NA_real_,
+                            confidence = confidence,
+                            classification = as.character(likely_possible$classification[i]),
+                            event_id = paste0("CP_", likely_possible$chain_id[i])
+                        )
+                    }
                 }
             }
         }
@@ -202,12 +226,38 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
 
             if (nrow(likely_possible) > 0) {
                 for (i in 1:nrow(likely_possible)) {
+                    # Chromosynthesis uses complexity_score, not confidence_score
+                    confidence <- if ("complexity_score" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$complexity_score[i])
+                    } else if ("confidence_score" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$confidence_score[i])
+                    } else {
+                        0.5  # Default moderate confidence
+                    }
+
+                    # Handle different possible column names for start/end
+                    region_start <- if ("start" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$start[i])
+                    } else if ("region_start" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$region_start[i])
+                    } else {
+                        NA_real_
+                    }
+
+                    region_end <- if ("end" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$end[i])
+                    } else if ("region_end" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$region_end[i])
+                    } else {
+                        NA_real_
+                    }
+
                     locations[[length(locations) + 1]] <- list(
                         mechanism = "chromosynthesis",
                         chrom = as.character(likely_possible$chrom[i]),
-                        start = as.numeric(likely_possible$region_start[i]),
-                        end = as.numeric(likely_possible$region_end[i]),
-                        confidence = as.numeric(likely_possible$confidence_score[i]),
+                        start = region_start,
+                        end = region_end,
+                        confidence = confidence,
                         classification = as.character(likely_possible$classification[i]),
                         event_id = paste0("CS_", likely_possible$region_id[i])
                     )
