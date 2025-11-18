@@ -1,21 +1,23 @@
 #' Comprehensive chromoanagenesis detection
 #'
-#' Performs integrated analysis to detect chromothripsis and chromoplexy
-#' from the same dataset, providing a complete view of complex chromosomal
-#' rearrangements.
+#' Performs integrated analysis to detect chromothripsis, chromoplexy, and
+#' chromosynthesis from the same dataset, providing a complete view of complex
+#' chromosomal rearrangements.
 #'
 #' @param SV.sample An instance of class SVs or data frame with SV data
 #' @param CNV.sample An instance of class CNVsegs or data frame with CNV data
 #' @param genome Reference genome ("hg19" or "hg38", default: "hg19")
 #' @param detect_chromothripsis Detect chromothripsis events (default: TRUE)
 #' @param detect_chromoplexy Detect chromoplexy events (default: TRUE)
+#' @param detect_chromosynthesis Detect chromosynthesis events (default: TRUE)
 #' @param min_chromothripsis_size Minimum SV cluster size for chromothripsis (default: 1)
 #' @param min_chromoplexy_chromosomes Minimum chromosomes for chromoplexy (default: 3)
+#' @param min_chromosynthesis_tandem_dups Minimum tandem dups for chromosynthesis (default: 3)
 #' @param verbose Print progress messages (default: TRUE)
-#' @return A list containing results for both analyses
+#' @return A list containing results for all three analyses
 #' @details
 #' This function provides a comprehensive analysis of chromoanagenesis events
-#' by detecting both chromothripsis and chromoplexy in the same sample.
+#' by detecting chromothripsis, chromoplexy, and chromosynthesis in the same sample.
 #'
 #' Chromothripsis characteristics:
 #' - Localized to one or few chromosomes
@@ -29,8 +31,14 @@
 #' - Minimal copy number changes
 #' - May form cycles
 #'
+#' Chromosynthesis characteristics:
+#' - Replication-based mechanism (FoSTeS/MMBIR)
+#' - Gradual copy number increases
+#' - Tandem duplications and inversions
+#' - Localized to specific regions
+#'
 #' The function returns integrated results allowing comparison and
-#' classification of complex rearrangement patterns.
+#' classification of all complex rearrangement patterns.
 #'
 #' @examples
 #' \dontrun{
@@ -59,8 +67,10 @@ detect_chromoanagenesis <- function(SV.sample,
                                    genome = "hg19",
                                    detect_chromothripsis = TRUE,
                                    detect_chromoplexy = TRUE,
+                                   detect_chromosynthesis = TRUE,
                                    min_chromothripsis_size = 1,
                                    min_chromoplexy_chromosomes = 3,
+                                   min_chromosynthesis_tandem_dups = 3,
                                    verbose = TRUE) {
 
     if (verbose) {
@@ -137,8 +147,29 @@ detect_chromoanagenesis <- function(SV.sample,
         }
     }
 
-    # 4. Integrated classification
-    if (verbose) cat("\nStep 4: Integrated classification...\n")
+    # 4. Detect chromosynthesis
+    if (detect_chromosynthesis) {
+        if (verbose) {
+            cat("\nStep 4: Detecting chromosynthesis...\n")
+        }
+
+        chromosynthesis_result <- detect_chromosynthesis(
+            SV.sample = SV.sample,
+            CNV.sample = CNV.sample,
+            min_tandem_dups = min_chromosynthesis_tandem_dups
+        )
+
+        results$chromosynthesis <- chromosynthesis_result
+
+        if (verbose) {
+            cat(sprintf("  Found %d likely and %d possible chromosynthesis events.\n",
+                       chromosynthesis_result$likely_chromosynthesis,
+                       chromosynthesis_result$possible_chromosynthesis))
+        }
+    }
+
+    # 5. Integrated classification
+    if (verbose) cat("\nStep 5: Integrated classification...\n")
 
     integrated_summary <- create_integrated_summary(results)
     results$integrated_summary <- integrated_summary
@@ -206,20 +237,49 @@ create_integrated_summary <- function(results) {
         summary$chromoplexy_chromosomes <- "Not analyzed"
     }
 
+    # Chromosynthesis summary
+    if (!is.null(results$chromosynthesis)) {
+        summary$chromosynthesis_likely <- results$chromosynthesis$likely_chromosynthesis
+        summary$chromosynthesis_possible <- results$chromosynthesis$possible_chromosynthesis
+        summary$chromosynthesis_regions <- results$chromosynthesis$total_regions
+
+        if (results$chromosynthesis$likely_chromosynthesis > 0) {
+            likely_regions <- results$chromosynthesis$summary[
+                results$chromosynthesis$summary$classification == "Likely chromosynthesis",
+            ]
+            chr_list <- unique(likely_regions$chrom)
+            summary$chromosynthesis_chromosomes <- paste(chr_list, collapse = ", ")
+        } else {
+            summary$chromosynthesis_chromosomes <- "None"
+        }
+    } else {
+        summary$chromosynthesis_likely <- NA
+        summary$chromosynthesis_possible <- NA
+        summary$chromosynthesis_regions <- NA
+        summary$chromosynthesis_chromosomes <- "Not analyzed"
+    }
+
     # Overall assessment
     has_chromothripsis <- !is.null(results$chromothripsis) &&
                          results$chromothripsis$n_likely > 0
     has_chromoplexy <- !is.null(results$chromoplexy) &&
                       results$chromoplexy$likely_chromoplexy > 0
+    has_chromosynthesis <- !is.null(results$chromosynthesis) &&
+                          results$chromosynthesis$likely_chromosynthesis > 0
 
-    if (has_chromothripsis && has_chromoplexy) {
-        summary$overall_classification <- "Both chromothripsis and chromoplexy detected"
-    } else if (has_chromothripsis) {
-        summary$overall_classification <- "Chromothripsis only"
-    } else if (has_chromoplexy) {
-        summary$overall_classification <- "Chromoplexy only"
-    } else {
+    # Create detailed classification
+    mechanisms <- c()
+    if (has_chromothripsis) mechanisms <- c(mechanisms, "chromothripsis")
+    if (has_chromoplexy) mechanisms <- c(mechanisms, "chromoplexy")
+    if (has_chromosynthesis) mechanisms <- c(mechanisms, "chromosynthesis")
+
+    if (length(mechanisms) == 0) {
         summary$overall_classification <- "No chromoanagenesis detected"
+    } else if (length(mechanisms) == 1) {
+        summary$overall_classification <- paste(tools::toTitleCase(mechanisms[1]), "only")
+    } else {
+        summary$overall_classification <- paste("Multiple mechanisms:",
+                                               paste(mechanisms, collapse = ", "))
     }
 
     return(as.data.frame(summary, stringsAsFactors = FALSE))
