@@ -24,6 +24,9 @@ ShatterSeek takes copy number (CN) and structural variation (SV) calls as input,
 ### Visualization
 - **Comprehensive Plotting**: Publication-quality visualizations for all chromoanagenesis mechanisms
 - **Interactive Reports**: Integrated dashboards combining multiple analysis views
+- **Genome-Wide Dashboard**: Multi-panel view with chromosome ideogram, SV density, CN profile, and mechanism distribution
+- **gGnome-style Regional Plots**: Detailed regional views showing SV arcs and copy number profiles
+- **Circos Plots**: Circular genome-wide visualization for multi-chromosome chromoanagenesis events
 - **Mechanism Landscape**: Genome-wide visualization of chromoanagenesis distribution
 
 ### Input Flexibility
@@ -59,6 +62,7 @@ ShatterSeek requires R (>= 3.0.1) and depends on:
 
 **Optional Dependencies**:
 - **VCF support**: VariantAnnotation or vcfR (for direct VCF input)
+- **Circos plots**: circlize (for circular genome-wide visualization)
 - **Breakpoint sequence analysis**: BSgenome packages (e.g., BSgenome.Hsapiens.UCSC.hg19)
 
 ## Installation
@@ -180,10 +184,13 @@ ShatterSeek now supports **direct VCF input** from popular SV and CNV callers, e
 ### Supported SV Callers
 - **Manta**: Illumina short-read SV caller
 - **Delly**: Pan-SV caller with precise breakpoint detection
+- **DRAGEN**: Illumina pipeline with comprehensive BND/TRA support
 - **GRIDSS**: High-sensitivity breakpoint detection
 - **LUMPY**: Probabilistic SV detection
 - **Sniffles**: Long-read (PacBio/ONT) SV caller
 - **Generic**: Any VCF with standard SVTYPE/END fields
+
+**BND/Translocation Support**: ShatterSeek automatically parses breakend (BND) records from VCF ALT fields using standard VCF 4.2+ bracket notation (e.g., `[chr13:49291490[`, `]chr5:15886744]`), enabling accurate detection of inter-chromosomal events crucial for chromoplexy analysis.
 
 ### Supported CNV Callers
 - **CNVkit**: Hybrid capture and WGS CNV detection
@@ -383,6 +390,88 @@ cat("Dominant repair:", bp_analysis$summary$dominant_mechanism, "\n")
 # Step 5: Generate comprehensive reports
 plot_mechanism_report(mixed_class, "Sample_01")
 plot_breakpoint_report(bp_analysis, SV_data, "Sample_01")
+```
+
+### 5. Advanced Visualization
+
+ShatterSeek provides multiple visualization approaches for comprehensive chromoanagenesis analysis.
+
+#### Genome-Wide Dashboard
+
+Multi-panel overview showing chromosome ideogram with true chromosome shapes, SV density heatmap, copy number profile, and mechanism distribution.
+
+```R
+# Generate genome-wide dashboard
+plot_genome_dashboard(
+    chromoanagenesis_result = results,
+    SV.sample = sv_data,
+    CNV.sample = cnv_data,
+    sample_name = "Sample_01"
+)
+```
+
+The dashboard includes:
+- **Chromosome Ideogram**: Displays chromoanagenesis events with anatomically accurate chromosome representation (p-arm, centromere, q-arm)
+- **SV Density Heatmap**: Shows concentration of structural variants across the genome
+- **Copy Number Profile**: Genome-wide CN landscape with color-coded gains/losses
+- **Mechanism Distribution**: Pie chart showing relative proportions of each mechanism
+
+#### gGnome-style Regional Visualization
+
+Detailed view of chromoanagenesis regions with SV arcs and copy number profiles, inspired by gGnome gWalks visualization.
+
+```R
+# Visualize specific chromoanagenesis region
+plots <- plot_chromoanagenesis_region(
+    chromoanagenesis_result = results,
+    SV.sample = sv_data,
+    CNV.sample = cnv_data,
+    chrom = "1",                      # Chromosome of interest
+    mechanism = "chromothripsis",     # or "chromoplexy", "chromosynthesis"
+    include_ideogram = TRUE
+)
+
+# Display combined plot
+print(plots)
+
+# Or arrange multiple regions
+combined <- arrange_regional_plots(
+    list(plots1, plots2, plots3),
+    ncol = 1
+)
+```
+
+Regional plots show:
+- **SV Arcs**: Curved lines connecting breakpoints with arc curvature indicating SV span
+- **Copy Number Profile**: Detailed CN changes with intelligent Y-axis scaling
+- **Regional Ideogram**: Chromosome context with highlighted region
+
+#### Circos Plots for Multi-Chromosome Events
+
+Circular genome-wide visualization ideal for chromoplexy and complex multi-chromosome events.
+
+```R
+# Generate circos plot
+plot_chromoanagenesis_circos(
+    chromoanagenesis_result = results,
+    SV.sample = sv_data,
+    CNV.sample = cnv_data,
+    sample_name = "Sample_01",
+    mechanisms = c("chromothripsis", "chromoplexy", "chromosynthesis")
+)
+```
+
+Circos plot structure (from outer to inner):
+1. **Chromosome Ideogram**: Chromosome labels and boundaries
+2. **Copy Number Track**: Color-coded CN profile (blue = loss, red = gain, gray = neutral)
+3. **Chromoanagenesis Regions**: Highlights detected events (red = chromothripsis, blue = chromoplexy, green = chromosynthesis)
+4. **SV Links**: Arcs connecting breakpoints, with different colors for SV types (DEL, DUP, INV, TRA)
+
+**Note**: Circos plots require the `circlize` package:
+```R
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("circlize")
 ```
 
 ## Important Notes
