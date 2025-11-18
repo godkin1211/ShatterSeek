@@ -11,7 +11,16 @@
 
     # Check source field in header
     if ("source" %in% names(meta)) {
-        source <- tolower(as.character(meta$source))
+        source_obj <- meta$source
+        # Handle different meta object types
+        if (is(source_obj, "DataFrame") || is(source_obj, "data.frame")) {
+            source <- tolower(paste(source_obj[, 1], collapse = " "))
+        } else if (is(source_obj, "character")) {
+            source <- tolower(paste(source_obj, collapse = " "))
+        } else {
+            source <- tolower(paste(as.character(source_obj), collapse = " "))
+        }
+
         if (grepl("manta", source)) return("manta")
         if (grepl("gridss", source)) return("gridss")
         if (grepl("delly", source)) return("delly")
@@ -84,7 +93,16 @@
     meta <- VariantAnnotation::meta(header)
 
     if ("source" %in% names(meta)) {
-        source <- tolower(as.character(meta$source))
+        source_obj <- meta$source
+        # Handle different meta object types
+        if (is(source_obj, "DataFrame") || is(source_obj, "data.frame")) {
+            source <- tolower(paste(source_obj[, 1], collapse = " "))
+        } else if (is(source_obj, "character")) {
+            source <- tolower(paste(source_obj, collapse = " "))
+        } else {
+            source <- tolower(paste(as.character(source_obj), collapse = " "))
+        }
+
         if (grepl("cnvkit", source)) return("cnvkit")
         if (grepl("gatk", source)) return("gatk")
         if (grepl("freec|control-freec", source)) return("controlfreec")
