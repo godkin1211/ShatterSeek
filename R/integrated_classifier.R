@@ -124,19 +124,22 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
         chromoth <- chromoanagenesis_result$chromothripsis$classification
 
         # Filter by confidence
-        chromoth <- chromoth[chromoth$confidence_score >= min_confidence, ]
+        if (!is.null(chromoth) && nrow(chromoth) > 0) {
+            chromoth <- chromoth[!is.na(chromoth$confidence_score) &
+                                chromoth$confidence_score >= min_confidence, ]
 
-        if (nrow(chromoth) > 0) {
-            for (i in 1:nrow(chromoth)) {
-                locations[[length(locations) + 1]] <- list(
-                    mechanism = "chromothripsis",
-                    chrom = chromoth$chrom[i],
-                    start = chromoth$start[i],
-                    end = chromoth$end[i],
-                    confidence = chromoth$confidence_score[i],
-                    classification = chromoth$classification[i],
-                    event_id = paste0("CT_", chromoth$chrom[i])
-                )
+            if (nrow(chromoth) > 0) {
+                for (i in 1:nrow(chromoth)) {
+                    locations[[length(locations) + 1]] <- list(
+                        mechanism = "chromothripsis",
+                        chrom = as.character(chromoth$chrom[i]),
+                        start = as.numeric(chromoth$start[i]),
+                        end = as.numeric(chromoth$end[i]),
+                        confidence = as.numeric(chromoth$confidence_score[i]),
+                        classification = as.character(chromoth$classification[i]),
+                        event_id = paste0("CT_", chromoth$chrom[i])
+                    )
+                }
             }
         }
     }
@@ -152,18 +155,33 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
         if (nrow(likely_possible) > 0) {
             for (i in 1:nrow(likely_possible)) {
                 # Get chromosomes involved
-                chroms <- unlist(strsplit(likely_possible$chromosomes_involved[i], ","))
+                chroms_str <- as.character(likely_possible$chromosomes_involved[i])
+
+                # Skip if NA or empty
+                if (is.na(chroms_str) || chroms_str == "" || nchar(chroms_str) == 0) {
+                    next
+                }
+
+                chroms <- unlist(strsplit(chroms_str, ","))
                 chroms <- trimws(chroms)
+
+                # Remove empty strings
+                chroms <- chroms[chroms != "" & !is.na(chroms)]
+
+                # Skip if no valid chromosomes
+                if (length(chroms) == 0) {
+                    next
+                }
 
                 # For each chromosome in the chain
                 for (chr in chroms) {
                     locations[[length(locations) + 1]] <- list(
                         mechanism = "chromoplexy",
-                        chrom = chr,
-                        start = NA,  # Chromoplexy doesn't have single region
-                        end = NA,
-                        confidence = likely_possible$confidence_score[i],
-                        classification = likely_possible$classification[i],
+                        chrom = as.character(chr),
+                        start = NA_real_,  # Chromoplexy doesn't have single region
+                        end = NA_real_,
+                        confidence = as.numeric(likely_possible$confidence_score[i]),
+                        classification = as.character(likely_possible$classification[i]),
                         event_id = paste0("CP_", likely_possible$chain_id[i])
                     )
                 }
@@ -176,20 +194,23 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
         chromosyn <- chromoanagenesis_result$chromosynthesis$summary
 
         # Filter by classification
-        likely_possible <- chromosyn[chromosyn$classification %in%
-                                    c("Likely chromosynthesis", "Possible chromosynthesis"), ]
+        if (!is.null(chromosyn) && nrow(chromosyn) > 0) {
+            likely_possible <- chromosyn[!is.na(chromosyn$classification) &
+                                        chromosyn$classification %in%
+                                        c("Likely chromosynthesis", "Possible chromosynthesis"), ]
 
-        if (nrow(likely_possible) > 0) {
-            for (i in 1:nrow(likely_possible)) {
-                locations[[length(locations) + 1]] <- list(
-                    mechanism = "chromosynthesis",
-                    chrom = likely_possible$chrom[i],
-                    start = likely_possible$region_start[i],
-                    end = likely_possible$region_end[i],
-                    confidence = likely_possible$confidence_score[i],
-                    classification = likely_possible$classification[i],
-                    event_id = paste0("CS_", likely_possible$region_id[i])
-                )
+            if (nrow(likely_possible) > 0) {
+                for (i in 1:nrow(likely_possible)) {
+                    locations[[length(locations) + 1]] <- list(
+                        mechanism = "chromosynthesis",
+                        chrom = as.character(likely_possible$chrom[i]),
+                        start = as.numeric(likely_possible$region_start[i]),
+                        end = as.numeric(likely_possible$region_end[i]),
+                        confidence = as.numeric(likely_possible$confidence_score[i]),
+                        classification = as.character(likely_possible$classification[i]),
+                        event_id = paste0("CS_", likely_possible$region_id[i])
+                    )
+                }
             }
         }
     }
