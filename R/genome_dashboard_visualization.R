@@ -1,0 +1,485 @@
+#' Genome-Wide Chromoanagenesis Dashboard Visualization
+#'
+#' Functions for creating comprehensive genome-wide overview of
+#' chromoanagenesis events, inspired by gGnome-style integrated views.
+#'
+#' @name genome_dashboard
+#' @keywords internal
+
+
+#' Plot genome-wide chromoanagenesis dashboard
+#'
+#' Creates an integrated dashboard with multiple panels showing
+#' genome-wide patterns of chromoanagenesis events.
+#'
+#' @param chromoanagenesis_result Result from detect_chromoanagenesis()
+#' @param sample_name Sample identifier for plot title
+#' @param include_panels Vector of panel names to include:
+#'   "ideogram", "sv_density", "cn_profile", "mechanism_dist"
+#' @return A grid arrangement of plots (uses grid/gridExtra)
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' results <- detect_chromoanagenesis(sv_data, cnv_data)
+#' dashboard <- plot_genome_dashboard(results, sample_name = "Patient_001")
+#' print(dashboard)
+#' }
+plot_genome_dashboard <- function(chromoanagenesis_result,
+                                  sample_name = "",
+                                  include_panels = c("ideogram", "sv_density",
+                                                    "cn_profile", "mechanism_dist")) {
+
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        stop("Package 'ggplot2' is required for dashboard visualization.")
+    }
+
+    if (!requireNamespace("gridExtra", quietly = TRUE)) {
+        stop("Package 'gridExtra' is required for dashboard layout.")
+    }
+
+    if (!inherits(chromoanagenesis_result, "chromoanagenesis")) {
+        stop("Input must be a chromoanagenesis result object from detect_chromoanagenesis()")
+    }
+
+    plots <- list()
+
+    # Panel 1: Genome ideogram with mechanism overlay
+    if ("ideogram" %in% include_panels) {
+        plots$ideogram <- plot_genome_ideogram(chromoanagenesis_result, sample_name)
+    }
+
+    # Panel 2: SV density heatmap
+    if ("sv_density" %in% include_panels) {
+        plots$sv_density <- plot_sv_density_heatmap(chromoanagenesis_result)
+    }
+
+    # Panel 3: Genome-wide CN profile
+    if ("cn_profile" %in% include_panels) {
+        plots$cn_profile <- plot_genome_wide_cn(chromoanagenesis_result)
+    }
+
+    # Panel 4: Mechanism distribution
+    if ("mechanism_dist" %in% include_panels) {
+        plots$mechanism_dist <- plot_mechanism_distribution(chromoanagenesis_result)
+    }
+
+    # Arrange panels in grid layout
+    if (length(plots) == 4) {
+        # Default 2x2 layout with ideogram spanning top
+        gridExtra::grid.arrange(
+            grobs = list(plots$ideogram, plots$sv_density,
+                        plots$cn_profile, plots$mechanism_dist),
+            layout_matrix = rbind(c(1, 1, 2),
+                                 c(3, 3, 2),
+                                 c(4, 4, 4)),
+            top = grid::textGrob(
+                sprintf("Chromoanagenesis Dashboard%s",
+                       ifelse(sample_name != "", paste0(" - ", sample_name), "")),
+                gp = grid::gpar(fontsize = 16, fontface = "bold")
+            )
+        )
+    } else {
+        # Simple vertical arrangement for subset of panels
+        do.call(gridExtra::grid.arrange, c(plots, ncol = 1))
+    }
+}
+
+
+#' Plot genome ideogram with chromoanagenesis events
+#'
+#' Creates a karyogram-style visualization showing all chromosomes
+#' with chromoanagenesis events highlighted.
+#'
+#' @param chromoanagenesis_result Chromoanagenesis results
+#' @param sample_name Sample name for subtitle
+#' @return ggplot2 object
+#' @export
+plot_genome_ideogram <- function(chromoanagenesis_result, sample_name = "") {
+
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        stop("Package 'ggplot2' is required.")
+    }
+
+    # Extract mechanism information per chromosome
+    mech_summary <- get_chromosome_mechanism_summary(chromoanagenesis_result)
+
+    if (nrow(mech_summary) == 0) {
+        # No events detected
+        p <- ggplot2::ggplot() +
+            ggplot2::annotate("text", x = 0.5, y = 0.5,
+                            label = "No chromoanagenesis events detected",
+                            size = 6, color = "gray50") +
+            ggplot2::theme_void()
+        return(p)
+    }
+
+    # Create chromosome ordering (1-22, X)
+    chr_order <- sort_chromosomes(unique(mech_summary$chrom))
+    mech_summary$chrom <- factor(mech_summary$chrom, levels = chr_order)
+
+    # Create ideogram plot
+    p <- ggplot2::ggplot(mech_summary, ggplot2::aes(x = chrom, y = 1))
+
+    # Add chromosome rectangles
+    p <- p + ggplot2::geom_tile(ggplot2::aes(fill = dominant_mechanism),
+                               width = 0.8, height = 0.6,
+                               color = "gray30", size = 0.5)
+
+    # Add event count labels
+    p <- p + ggplot2::geom_text(ggplot2::aes(label = n_events),
+                               color = "white", fontface = "bold", size = 4)
+
+    # Color scheme
+    mechanism_colors <- c(
+        "chromothripsis" = "#E41A1C",
+        "chromoplexy" = "#377EB8",
+        "chromosynthesis" = "#4DAF4A",
+        "mixed" = "#984EA3",
+        "none" = "gray80"
+    )
+
+    p <- p + ggplot2::scale_fill_manual(
+        values = mechanism_colors,
+        name = "Mechanism",
+        na.value = "gray80"
+    )
+
+    # Theme and labels
+    p <- p + ggplot2::labs(
+        title = "Genome-Wide Chromoanagenesis Events",
+        subtitle = ifelse(sample_name != "", sample_name, ""),
+        x = "Chromosome",
+        y = ""
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+        axis.text.y = ggplot2::element_blank(),
+        axis.ticks.y = ggplot2::element_blank(),
+        panel.grid.major.y = ggplot2::element_blank(),
+        panel.grid.minor = ggplot2::element_blank(),
+        legend.position = "right",
+        plot.title = ggplot2::element_text(face = "bold", size = 14),
+        axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5)
+    )
+
+    return(p)
+}
+
+
+#' Plot SV density heatmap by chromosome and type
+#'
+#' Creates a heatmap showing the density of different SV types
+#' across chromosomes.
+#'
+#' @param chromoanagenesis_result Chromoanagenesis results
+#' @return ggplot2 object
+#' @export
+plot_sv_density_heatmap <- function(chromoanagenesis_result) {
+
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        stop("Package 'ggplot2' is required.")
+    }
+
+    # Extract SV data
+    sv_data <- chromoanagenesis_result$SV_data
+
+    if (is.null(sv_data) || nrow(sv_data) == 0) {
+        p <- ggplot2::ggplot() +
+            ggplot2::annotate("text", x = 0.5, y = 0.5,
+                            label = "No SV data available",
+                            size = 5, color = "gray50") +
+            ggplot2::theme_void()
+        return(p)
+    }
+
+    # Count SVs by chromosome and type
+    sv_counts <- as.data.frame(table(
+        chrom = sv_data$chrom1,
+        svtype = sv_data$SVtype
+    ))
+    names(sv_counts) <- c("chrom", "svtype", "count")
+
+    # Sort chromosomes
+    chr_order <- sort_chromosomes(unique(as.character(sv_counts$chrom)))
+    sv_counts$chrom <- factor(sv_counts$chrom, levels = chr_order)
+
+    # Create heatmap
+    p <- ggplot2::ggplot(sv_counts,
+                        ggplot2::aes(x = chrom, y = svtype, fill = count))
+
+    p <- p + ggplot2::geom_tile(color = "white", size = 0.5)
+
+    p <- p + ggplot2::geom_text(
+        ggplot2::aes(label = ifelse(count > 0, as.character(count), "")),
+        color = "white", size = 3, fontface = "bold"
+    )
+
+    # Color scale
+    p <- p + ggplot2::scale_fill_gradient(
+        low = "gray90",
+        high = "#d73027",
+        name = "SV Count"
+    )
+
+    # Theme and labels
+    p <- p + ggplot2::labs(
+        title = "SV Density by Type and Chromosome",
+        x = "Chromosome",
+        y = "SV Type"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+        panel.grid = ggplot2::element_blank(),
+        axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+        plot.title = ggplot2::element_text(face = "bold", size = 12)
+    )
+
+    return(p)
+}
+
+
+#' Plot genome-wide copy number profile
+#'
+#' Creates a linear plot showing copy number across all chromosomes.
+#'
+#' @param chromoanagenesis_result Chromoanagenesis results
+#' @return ggplot2 object
+#' @export
+plot_genome_wide_cn <- function(chromoanagenesis_result) {
+
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        stop("Package 'ggplot2' is required.")
+    }
+
+    # Extract CNV data
+    cnv_data <- chromoanagenesis_result$CNV_data
+
+    if (is.null(cnv_data) || nrow(cnv_data) == 0) {
+        p <- ggplot2::ggplot() +
+            ggplot2::annotate("text", x = 0.5, y = 0.5,
+                            label = "No CNV data available",
+                            size = 5, color = "gray50") +
+            ggplot2::theme_void()
+        return(p)
+    }
+
+    # Sort chromosomes
+    chr_order <- sort_chromosomes(unique(as.character(cnv_data$chrom)))
+    cnv_data$chrom <- factor(cnv_data$chrom, levels = chr_order)
+
+    # Calculate cumulative genomic positions for linear view
+    cnv_data_linear <- calculate_linear_positions(cnv_data)
+
+    # Identify chromoanagenesis regions
+    cnv_data_linear <- annotate_chromoanagenesis_regions(
+        cnv_data_linear,
+        chromoanagenesis_result
+    )
+
+    # Create CN profile plot
+    p <- ggplot2::ggplot(cnv_data_linear)
+
+    # Add chromosome alternating backgrounds
+    chr_bounds <- get_chromosome_boundaries(cnv_data_linear)
+    for (i in seq_len(nrow(chr_bounds))) {
+        if (i %% 2 == 0) {
+            p <- p + ggplot2::annotate(
+                "rect",
+                xmin = chr_bounds$start[i],
+                xmax = chr_bounds$end[i],
+                ymin = -Inf, ymax = Inf,
+                fill = "gray95", alpha = 0.5
+            )
+        }
+    }
+
+    # Add CN segments
+    p <- p + ggplot2::geom_segment(
+        ggplot2::aes(x = linear_start, xend = linear_end,
+                    y = total_cn, yend = total_cn,
+                    color = has_chromoanagenesis),
+        size = 1.5
+    )
+
+    # Color scale
+    p <- p + ggplot2::scale_color_manual(
+        values = c("FALSE" = "gray50", "TRUE" = "#E41A1C"),
+        name = "Chromoanagenesis",
+        labels = c("FALSE" = "Normal", "TRUE" = "Event")
+    )
+
+    # Add chromosome labels
+    p <- p + ggplot2::scale_x_continuous(
+        breaks = chr_bounds$mid,
+        labels = chr_bounds$chrom,
+        expand = c(0.01, 0.01)
+    )
+
+    # Add reference line at CN=2
+    p <- p + ggplot2::geom_hline(
+        yintercept = 2,
+        linetype = "dashed",
+        color = "gray40",
+        size = 0.5
+    )
+
+    # Theme and labels
+    p <- p + ggplot2::labs(
+        title = "Genome-Wide Copy Number Profile",
+        x = "Chromosome",
+        y = "Copy Number"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+        panel.grid.major.x = ggplot2::element_blank(),
+        panel.grid.minor = ggplot2::element_blank(),
+        axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5),
+        plot.title = ggplot2::element_text(face = "bold", size = 12),
+        legend.position = "right"
+    ) +
+    ggplot2::coord_cartesian(ylim = c(0, max(cnv_data_linear$total_cn, 6)))
+
+    return(p)
+}
+
+
+#' Plot mechanism distribution summary
+#'
+#' Creates a summary visualization of mechanism proportions.
+#'
+#' @param chromoanagenesis_result Chromoanagenesis results
+#' @return ggplot2 object
+#' @export
+plot_mechanism_distribution <- function(chromoanagenesis_result) {
+
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        stop("Package 'ggplot2' is required.")
+    }
+
+    # Get mechanism counts
+    mech_counts <- data.frame(
+        mechanism = character(),
+        count = numeric(),
+        classification = character(),
+        stringsAsFactors = FALSE
+    )
+
+    # Chromothripsis
+    if (!is.null(chromoanagenesis_result$chromothripsis)) {
+        ct_class <- chromoanagenesis_result$chromothripsis$classification
+        if (!is.null(ct_class) && nrow(ct_class) > 0) {
+            ct_summary <- table(ct_class$classification)
+            for (cls in names(ct_summary)) {
+                if (ct_summary[cls] > 0 && cls %in% c("Likely chromothripsis", "Possible chromothripsis")) {
+                    mech_counts <- rbind(mech_counts, data.frame(
+                        mechanism = "Chromothripsis",
+                        count = as.numeric(ct_summary[cls]),
+                        classification = cls,
+                        stringsAsFactors = FALSE
+                    ))
+                }
+            }
+        }
+    }
+
+    # Chromoplexy
+    if (!is.null(chromoanagenesis_result$chromoplexy)) {
+        cp_summary <- chromoanagenesis_result$chromoplexy$summary
+        if (!is.null(cp_summary) && nrow(cp_summary) > 0) {
+            cp_counts <- table(cp_summary$classification)
+            for (cls in names(cp_counts)) {
+                if (cp_counts[cls] > 0 && cls %in% c("Likely chromoplexy", "Possible chromoplexy")) {
+                    mech_counts <- rbind(mech_counts, data.frame(
+                        mechanism = "Chromoplexy",
+                        count = as.numeric(cp_counts[cls]),
+                        classification = cls,
+                        stringsAsFactors = FALSE
+                    ))
+                }
+            }
+        }
+    }
+
+    # Chromosynthesis
+    if (!is.null(chromoanagenesis_result$chromosynthesis)) {
+        cs_summary <- chromoanagenesis_result$chromosynthesis$summary
+        if (!is.null(cs_summary) && nrow(cs_summary) > 0) {
+            cs_counts <- table(cs_summary$classification)
+            for (cls in names(cs_counts)) {
+                if (cs_counts[cls] > 0 && cls %in% c("Likely chromosynthesis", "Possible chromosynthesis")) {
+                    mech_counts <- rbind(mech_counts, data.frame(
+                        mechanism = "Chromosynthesis",
+                        count = as.numeric(cs_counts[cls]),
+                        classification = cls,
+                        stringsAsFactors = FALSE
+                    ))
+                }
+            }
+        }
+    }
+
+    if (nrow(mech_counts) == 0) {
+        p <- ggplot2::ggplot() +
+            ggplot2::annotate("text", x = 0.5, y = 0.5,
+                            label = "No chromoanagenesis events detected",
+                            size = 5, color = "gray50") +
+            ggplot2::theme_void()
+        return(p)
+    }
+
+    # Simplify classification labels
+    mech_counts$class_simple <- ifelse(
+        grepl("Likely", mech_counts$classification),
+        "Likely",
+        "Possible"
+    )
+
+    # Colors
+    mechanism_colors <- c(
+        "Chromothripsis" = "#E41A1C",
+        "Chromoplexy" = "#377EB8",
+        "Chromosynthesis" = "#4DAF4A"
+    )
+
+    # Create stacked bar chart
+    p <- ggplot2::ggplot(mech_counts,
+                        ggplot2::aes(x = mechanism, y = count, fill = mechanism, alpha = class_simple))
+
+    p <- p + ggplot2::geom_col(color = "white", size = 0.5)
+
+    p <- p + ggplot2::geom_text(
+        ggplot2::aes(label = count),
+        position = ggplot2::position_stack(vjust = 0.5),
+        color = "white",
+        fontface = "bold",
+        size = 5
+    )
+
+    p <- p + ggplot2::scale_fill_manual(
+        values = mechanism_colors,
+        name = "Mechanism"
+    )
+
+    p <- p + ggplot2::scale_alpha_manual(
+        values = c("Likely" = 1.0, "Possible" = 0.6),
+        name = "Classification"
+    )
+
+    # Theme and labels
+    p <- p + ggplot2::labs(
+        title = "Mechanism Distribution",
+        x = "",
+        y = "Event Count"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+        panel.grid.major.x = ggplot2::element_blank(),
+        panel.grid.minor = ggplot2::element_blank(),
+        plot.title = ggplot2::element_text(face = "bold", size = 12),
+        axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+        legend.position = "right"
+    )
+
+    return(p)
+}
