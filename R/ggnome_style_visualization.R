@@ -314,24 +314,32 @@ plot_sv_arcs <- function(sv_data, start_pos, end_pos, mechanism = "chromothripsi
         }
     }
 
-    # Add legend manually
-    legend_data <- data.frame(
-        svtype = factor(c("DEL", "DUP", "t2tINV", "h2hINV"),
-                       levels = c("DEL", "DUP", "t2tINV", "h2hINV")),
-        x = start_pos,
-        y = 1
-    )
+    # Add invisible points for legend
+    # Create data for each SV type present in the data
+    present_types <- unique(sv_data$SVtype)
+    present_types <- present_types[present_types %in% names(sv_colors)]
 
-    p <- p +
-        ggplot2::geom_line(
-            data = legend_data,
-            ggplot2::aes(x = x, y = y, color = svtype),
-            size = 1
-        ) +
-        ggplot2::scale_color_manual(
-            values = sv_colors,
-            name = "SV Type"
+    if (length(present_types) > 0) {
+        legend_data <- data.frame(
+            svtype = factor(present_types, levels = names(sv_colors)),
+            x = start_pos,
+            y = 1,
+            stringsAsFactors = FALSE
         )
+
+        p <- p +
+            ggplot2::geom_point(
+                data = legend_data,
+                ggplot2::aes(x = x, y = y, color = svtype),
+                size = 0,  # Invisible points for legend only
+                alpha = 0
+            ) +
+            ggplot2::scale_color_manual(
+                values = sv_colors,
+                name = "SV Type",
+                breaks = present_types
+            )
+    }
 
     # Theme
     p <- p +

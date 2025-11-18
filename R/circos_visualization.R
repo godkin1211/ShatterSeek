@@ -403,7 +403,8 @@ extract_chromoplexy_regions <- function(chains) {
 
     for (i in seq_along(chains)) {
         chain <- chains[[i]]
-        if (!is.null(chain) && nrow(chain) > 0) {
+        # Safe check for chain validity
+        if (!is.null(chain) && is.data.frame(chain) && nrow(chain) > 0) {
             # Get regions for each chromosome in this chain
             for (chr in unique(c(chain$chrom1, chain$chrom2))) {
                 chr_svs <- chain[chain$chrom1 == chr | chain$chrom2 == chr, ]
