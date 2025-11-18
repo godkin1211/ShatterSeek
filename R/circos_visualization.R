@@ -287,10 +287,17 @@ extract_chromoanagenesis_regions <- function(chromoanagenesis_result, mechanisms
             ct_regions <- ct_class[ct_class$classification %in%
                                   c("Likely chromothripsis", "Possible chromothripsis"), ]
             if (nrow(ct_regions) > 0) {
+                # Get start/end from detection_output chromSummary
+                ct_summary <- chromoanagenesis_result$chromothripsis$detection_output@chromSummary
+
+                # Merge to get coordinates
+                ct_with_coords <- merge(ct_regions, ct_summary[, c("chrom", "start", "end")],
+                                       by = "chrom", all.x = TRUE)
+
                 regions_list$chromothripsis <- data.frame(
-                    chr = paste0("chr", ct_regions$chrom),
-                    start = ct_regions$start,
-                    end = ct_regions$end,
+                    chr = paste0("chr", ct_with_coords$chrom),
+                    start = ct_with_coords$start,
+                    end = ct_with_coords$end,
                     mechanism = "chromothripsis",
                     stringsAsFactors = FALSE
                 )

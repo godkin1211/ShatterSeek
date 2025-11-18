@@ -110,10 +110,16 @@ get_region_coordinates <- function(chromoanagenesis_result, chrom, mechanism, re
                 regions <- ct_class[ct_class$chrom == chrom &
                                    ct_class$classification %in% c("Likely chromothripsis", "Possible chromothripsis"), ]
                 if (nrow(regions) >= region_idx) {
-                    return(list(
-                        start = regions$start[region_idx],
-                        end = regions$end[region_idx]
-                    ))
+                    # Get start/end from detection_output chromSummary
+                    ct_summary <- chromoanagenesis_result$chromothripsis$detection_output@chromSummary
+                    coords <- ct_summary[ct_summary$chrom == chrom, c("start", "end")]
+
+                    if (nrow(coords) >= region_idx) {
+                        return(list(
+                            start = coords$start[region_idx],
+                            end = coords$end[region_idx]
+                        ))
+                    }
                 }
             }
         }
@@ -198,9 +204,17 @@ filter_cnv_to_region <- function(cnv_data, chrom, start_pos, end_pos) {
 plot_region_ideogram <- function(chrom, start_pos, end_pos) {
 
     # Simplified ideogram - just a chromosome bar with highlighted region
-    p <- ggplot2::ggplot() +
+    # Create data frame for geom_rect
+    ideogram_data <- data.frame(
+        xmin = start_pos,
+        xmax = end_pos,
+        ymin = 0,
+        ymax = 1
+    )
+
+    p <- ggplot2::ggplot(ideogram_data) +
         ggplot2::geom_rect(
-            ggplot2::aes(xmin = start_pos, xmax = end_pos, ymin = 0, ymax = 1),
+            ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
             fill = "gray80", color = "black", size = 0.5
         ) +
         ggplot2::scale_x_continuous(
