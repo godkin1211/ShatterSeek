@@ -98,7 +98,7 @@ plot_mechanism_landscape <- function(mixed_mechanisms_result,
         p <- p + ggplot2::geom_point(
             ggplot2::aes(
                 x = chrom,
-                y = as.numeric(factor(mechanism)),
+                y = as.numeric(mechanism),  # Use pre-factored mechanism
                 color = mechanism,
                 size = confidence
             ),
@@ -109,7 +109,7 @@ plot_mechanism_landscape <- function(mixed_mechanisms_result,
         p <- p + ggplot2::geom_point(
             ggplot2::aes(
                 x = chrom,
-                y = as.numeric(factor(mechanism)),
+                y = as.numeric(mechanism),  # Use pre-factored mechanism
                 color = mechanism
             ),
             position = ggplot2::position_jitter(width = 0.2, height = 0.1),
