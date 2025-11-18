@@ -567,7 +567,15 @@
 
         for (i in which(is_bnd)) {
             # Only parse ALT if we don't have chrom2/pos2 from INFO
-            if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+            # Check for NA values and default values
+            needs_parsing <- FALSE
+            if (is.na(chrom2[i]) || is.na(pos2[i])) {
+                needs_parsing <- TRUE
+            } else if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+                needs_parsing <- TRUE
+            }
+
+            if (needs_parsing) {
                 alt_str <- alt[i]
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
@@ -661,7 +669,15 @@
 
         for (i in which(is_bnd)) {
             # Only parse ALT if we don't have chrom2/pos2 from INFO
-            if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+            # Check for NA values and default values
+            needs_parsing <- FALSE
+            if (is.na(chrom2[i]) || is.na(pos2[i])) {
+                needs_parsing <- TRUE
+            } else if (chrom2[i] == chrom1[i] && pos2[i] == pos1[i]) {
+                needs_parsing <- TRUE
+            }
+
+            if (needs_parsing) {
                 alt_str <- alt[i]
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
