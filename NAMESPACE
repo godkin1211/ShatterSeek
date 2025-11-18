@@ -36,7 +36,8 @@ export(shatterseek,SVs,CNVsegs,plot_chromothripsis,
        plot_mechanism_dominance,plot_mechanism_report,
        analyze_breakpoint_sequences,plot_repair_mechanisms,
        plot_microhomology_distribution,plot_repair_by_svtype,
-       plot_breakpoint_report,debug_chromoanagenesis_result)
+       plot_breakpoint_report,debug_chromoanagenesis_result,
+       debug_mixed_mechanisms)
 
 exportClasses(
 	SVs,CNVsegs,chromoth

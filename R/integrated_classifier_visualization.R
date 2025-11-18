@@ -181,10 +181,10 @@ plot_chromosome_mechanisms <- function(mixed_mechanisms_result,
 
     presence_df <- do.call(rbind, lapply(presence_data, function(x) {
         data.frame(
-            chrom = x$chrom,
-            mechanism = x$mechanism,
-            present = x$present,
-            is_mixed = x$is_mixed,
+            chrom = as.character(x$chrom),
+            mechanism = as.character(x$mechanism),
+            present = as.logical(x$present),
+            is_mixed = as.logical(x$is_mixed),
             stringsAsFactors = FALSE
         )
     }))
