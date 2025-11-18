@@ -130,11 +130,12 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
 
             if (nrow(chromoth) > 0) {
                 for (i in 1:nrow(chromoth)) {
+                    # Chromothripsis affects whole chromosome, no specific start/end
                     locations[[length(locations) + 1]] <- list(
                         mechanism = "chromothripsis",
                         chrom = as.character(chromoth$chrom[i]),
-                        start = as.numeric(chromoth$start[i]),
-                        end = as.numeric(chromoth$end[i]),
+                        start = NA_real_,  # Whole chromosome, no specific region
+                        end = NA_real_,
                         confidence = as.numeric(chromoth$confidence_score[i]),
                         classification = as.character(chromoth$classification[i]),
                         event_id = paste0("CT_", chromoth$chrom[i])
