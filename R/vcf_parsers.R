@@ -564,8 +564,6 @@
     is_bnd <- svtype == "BND"
     if (any(is_bnd)) {
         alt <- as.character(VariantAnnotation::alt(vcf))
-        n_bnd <- sum(is_bnd)
-        cat(sprintf("\n=== BND Parsing Debug ===\nFound %d BND records\n", n_bnd))
 
         for (i in which(is_bnd)) {
             # Only parse ALT if we don't have chrom2/pos2 from INFO
@@ -579,8 +577,6 @@
 
             if (needs_parsing) {
                 alt_str <- alt[i]
-                cat(sprintf("\nBND #%d: %s:%d\n", i, chrom1[i], pos1[i]))
-                cat(sprintf("  ALT field: %s\n", alt_str))
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
                 # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
@@ -589,7 +585,6 @@
                 match <- regexec(pattern, alt_str)
                 if (match[[1]][1] != -1) {
                     matches <- regmatches(alt_str, match)[[1]]
-                    cat(sprintf("  Regex matched! Extracted %d groups\n", length(matches)))
                     if (length(matches) >= 4) {
                         # Extract chromosome and position
                         # matches[1] = full match
@@ -600,23 +595,15 @@
                         mate_chr <- matches[3]
                         mate_pos <- as.numeric(matches[4])
 
-                        cat(sprintf("  Raw extraction: chr=%s, pos=%s\n", mate_chr, mate_pos))
-
                         # Remove "chr" prefix if present
                         mate_chr <- gsub("^chr", "", mate_chr, ignore.case = TRUE)
 
                         chrom2[i] <- mate_chr
                         pos2[i] <- mate_pos
-                        cat(sprintf("  Final: chrom2=%s, pos2=%d\n", chrom2[i], pos2[i]))
-                    } else {
-                        cat(sprintf("  ERROR: Only %d matches (expected 4+)\n", length(matches)))
                     }
-                } else {
-                    cat(sprintf("  Regex did NOT match\n"))
                 }
             }
         }
-        cat(sprintf("\n=== End BND Parsing ===\n\n"))
     }
 
     # Infer strands from SVTYPE
@@ -685,8 +672,6 @@
     is_bnd <- svtype == "BND"
     if (any(is_bnd)) {
         alt <- fix[, "ALT"]
-        n_bnd <- sum(is_bnd)
-        cat(sprintf("\n=== BND Parsing Debug (vcfR) ===\nFound %d BND records\n", n_bnd))
 
         for (i in which(is_bnd)) {
             # Only parse ALT if we don't have chrom2/pos2 from INFO
@@ -700,8 +685,6 @@
 
             if (needs_parsing) {
                 alt_str <- alt[i]
-                cat(sprintf("\nBND #%d: %s:%d\n", i, chrom1[i], pos1[i]))
-                cat(sprintf("  ALT field: %s\n", alt_str))
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
                 # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
@@ -710,7 +693,6 @@
                 match <- regexec(pattern, alt_str)
                 if (match[[1]][1] != -1) {
                     matches <- regmatches(alt_str, match)[[1]]
-                    cat(sprintf("  Regex matched! Extracted %d groups\n", length(matches)))
                     if (length(matches) >= 4) {
                         # Extract chromosome and position
                         # matches[1] = full match
@@ -721,23 +703,15 @@
                         mate_chr <- matches[3]
                         mate_pos <- as.numeric(matches[4])
 
-                        cat(sprintf("  Raw extraction: chr=%s, pos=%s\n", mate_chr, mate_pos))
-
                         # Remove "chr" prefix if present
                         mate_chr <- gsub("^chr", "", mate_chr, ignore.case = TRUE)
 
                         chrom2[i] <- mate_chr
                         pos2[i] <- mate_pos
-                        cat(sprintf("  Final: chrom2=%s, pos2=%d\n", chrom2[i], pos2[i]))
-                    } else {
-                        cat(sprintf("  ERROR: Only %d matches (expected 4+)\n", length(matches)))
                     }
-                } else {
-                    cat(sprintf("  Regex did NOT match\n"))
                 }
             }
         }
-        cat(sprintf("\n=== End BND Parsing ===\n\n"))
     }
 
     strand1 <- rep("+", length(svtype))
