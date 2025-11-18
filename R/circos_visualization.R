@@ -296,15 +296,26 @@ plot_chromoanagenesis_circos <- function(chromoanagenesis_result,
         title = "Mechanism"
     )
 
-    legend(
-        "bottomright",
-        legend = c("DEL", "DUP", "INV"),
-        fill = c("#f4a582", "#92c5de", "#66c2a5"),
-        border = NA,
-        bty = "n",
-        cex = 0.8,
-        title = "SV Type"
-    )
+    # Dynamic SV type legend based on actual data
+    if (!is.null(sv_data) && nrow(sv_data) > 0) {
+        # Get unique SV types present in the data
+        present_types <- unique(sv_data$SVtype)
+
+        # Filter sv_colors to only include present types
+        legend_types <- present_types[present_types %in% names(sv_colors)]
+
+        if (length(legend_types) > 0) {
+            legend(
+                "bottomright",
+                legend = legend_types,
+                fill = sv_colors[legend_types],
+                border = NA,
+                bty = "n",
+                cex = 0.8,
+                title = "SV Type"
+            )
+        }
+    }
 
     # Clean up
     circlize::circos.clear()
