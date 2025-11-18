@@ -41,7 +41,9 @@ export(detect_chromothripsis,SVs,CNVsegs,plot_chromothripsis,
        read_sv_vcf,read_cnv_vcf,
        plot_genome_dashboard,plot_genome_ideogram,
        plot_sv_density_heatmap,plot_genome_wide_cn,
-       plot_mechanism_distribution)
+       plot_mechanism_distribution,
+       plot_chromoanagenesis_region,arrange_regional_plots,
+       plot_chromoanagenesis_circos)
 
 exportClasses(
 	SVs,CNVsegs,chromoth
