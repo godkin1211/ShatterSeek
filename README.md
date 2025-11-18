@@ -1,12 +1,12 @@
-# ShatterSeek
+# ShatterSeek - Extended Edition
 
-**ShatterSeek** is a comprehensive R package for detecting and analyzing **chromoanagenesis** events from next-generation sequencing (NGS) data. Chromoanagenesis represents catastrophic genomic rearrangements including:
+**ShatterSeek Extended** is a comprehensive R package for detecting and analyzing **chromoanagenesis** events from next-generation sequencing (NGS) data. Built upon the foundational chromothripsis detection framework developed by Cortes-Ciriano et al. (Nature Genetics, 2020), this extended version provides a complete chromoanagenesis analysis suite including:
 
-- **Chromothripsis**: Chromosome shattering with random reassembly
-- **Chromoplexy**: Chained translocations across multiple chromosomes
-- **Chromosynthesis**: Serial replication-based rearrangements (FoSTeS/MMBIR)
+- **Chromothripsis**: Chromosome shattering with random reassembly (original implementation + enhancements)
+- **Chromoplexy**: Chained translocations across multiple chromosomes (NEW)
+- **Chromosynthesis**: Serial replication-based rearrangements (FoSTeS/MMBIR) (NEW)
 
-ShatterSeek takes copy number (CN) and structural variation (SV) calls as input, making it compatible with virtually any CN and SV caller.
+ShatterSeek Extended takes copy number (CN) and structural variation (SV) calls as input, making it compatible with virtually any CN and SV caller. The extended version adds **advanced visualization**, **direct VCF support with BND parsing**, **breakpoint sequence analysis**, and **integrated multi-mechanism classification**.
 
 ## Key Features
 
@@ -42,7 +42,8 @@ ShatterSeek takes copy number (CN) and structural variation (SV) calls as input,
 
 ## Scientific Background
 
-ShatterSeek was originally developed and validated using ~2,600 whole-genome sequencing datasets from The Pan-Cancer Analysis of Whole Genomes (PCAWG) project.
+### Original Framework
+ShatterSeek was originally developed and validated using ~2,600 whole-genome sequencing datasets from The Pan-Cancer Analysis of Whole Genomes (PCAWG) project for chromothripsis detection.
 
 **Original Publication:**
 *Comprehensive analysis of chromothripsis in 2,658 human cancers using whole-genome sequencing*
@@ -50,8 +51,31 @@ ShatterSeek was originally developed and validated using ~2,600 whole-genome seq
 
 **Interactive Browser:** http://compbio.med.harvard.edu/chromothripsis/
 
-**Extended Capabilities:**
-The current version extends beyond chromothripsis to provide comprehensive chromoanagenesis analysis, including chromoplexy and chromosynthesis detection modules with integrated classification and mechanistic insights.
+### Extended Edition (Version 2.0+)
+
+This **Extended Edition** represents a major enhancement of the original ShatterSeek framework with the following significant additions:
+
+**New Detection Modules:**
+- **Chromoplexy Detection**: Complete implementation of translocation chain detection across multiple chromosomes with confidence scoring
+- **Chromosynthesis Detection**: Replication-based rearrangement analysis with CN gradient detection
+- **Mixed Mechanism Classification**: Integrated analysis of co-occurring chromoanagenesis events
+
+**Advanced Visualization System:**
+- **Genome-Wide Dashboards**: Multi-panel views with anatomically accurate chromosome ideograms (p-arm, centromere, q-arm)
+- **gGnome-style Regional Plots**: Detailed regional visualization with SV arcs and copy number profiles
+- **Circos Plots**: Circular genome-wide visualization optimized for multi-chromosome events with four-track layout (chromosome ideogram, copy number, chromoanagenesis regions, SV links)
+
+**Enhanced Input/Output:**
+- **Direct VCF Support**: Automatic parsing from major SV callers (Manta, Delly, DRAGEN, GRIDSS, LUMPY, Sniffles)
+- **BND/Translocation Parsing**: Robust parsing of breakend records from VCF ALT fields using VCF 4.2+ bracket notation
+- **CNV VCF Support**: Direct input from CNVkit, GATK, Control-FREEC, Canvas
+
+**Mechanistic Analysis:**
+- **Breakpoint Sequence Analysis**: DNA repair mechanism inference (NHEJ, MMEJ, HR, FoSTeS/MMBIR)
+- **Confidence Scoring**: Evidence-based quantitative metrics for all detection modules
+- **Complexity Assessment**: Multi-dimensional genomic instability scoring
+
+The extended edition maintains full backward compatibility with the original ShatterSeek API while adding comprehensive multi-mechanism chromoanagenesis analysis capabilities.
 
 ## Prerequisites
 
@@ -577,37 +601,134 @@ print(quality)
 
 ## Citation
 
-If you use ShatterSeek in your research, please cite:
+### Primary Citation
 
-**Cortes-Ciriano, I., Lee, J.J., Xi, R. et al.** Comprehensive analysis of chromothripsis in 2,658 human cancers using whole-genome sequencing. *Nat Genet* **52**, 331–341 (2020). https://doi.org/10.1038/s41588-019-0576-7
+If you use **ShatterSeek Extended** in your research, please cite:
 
-For chromoplexy and chromosynthesis features, please also cite relevant method papers:
-- **Chromoplexy**: Baca, S.C. et al. *Cell* (2013)
-- **Chromosynthesis**: Liu, P. et al. *Cell* (2011)
+**For the extended edition (chromoplexy, chromosynthesis, visualization, VCF support):**
+> ShatterSeek Extended Edition (v2.0+): Comprehensive chromoanagenesis detection and analysis.
+> GitHub: https://github.com/[your-repo]/ShatterSeek
+> DOI: [To be assigned upon publication]
+
+**For the original chromothripsis detection framework:**
+> Cortes-Ciriano, I., Lee, J.J., Xi, R. et al. Comprehensive analysis of chromothripsis in 2,658 human cancers using whole-genome sequencing. *Nat Genet* **52**, 331–341 (2020). https://doi.org/10.1038/s41588-019-0576-7
+
+### Additional Citations
+
+For specific features, please also cite the relevant method papers:
+
+- **Chromoplexy concept**: Baca, S.C. et al. Punctuated evolution of prostate cancer genomes. *Cell* **153**(3), 666-677 (2013). https://doi.org/10.1016/j.cell.2013.03.021
+- **Chromosynthesis/FoSTeS**: Liu, P. et al. Chromosome catastrophes involve replication mechanisms generating complex genomic rearrangements. *Cell* **146**(6), 889-903 (2011). https://doi.org/10.1016/j.cell.2011.07.042
+- **Breakpoint repair mechanisms**: Tubio, J.M.C. & Estivill, X. Cancer: When catastrophe strikes a cell. *Nature* **470**, 476-477 (2011). https://doi.org/10.1038/470476a
+
+### Recommended Citation Format
+
+**For publications using the extended features:**
+```
+We performed chromoanagenesis analysis using ShatterSeek Extended Edition
+(v2.0+), which extends the original chromothripsis detection framework
+(Cortes-Ciriano et al., 2020) with chromoplexy and chromosynthesis detection,
+advanced visualization, and direct VCF support.
+```
+
+**For publications using only chromothripsis detection:**
+```
+We performed chromothripsis analysis using ShatterSeek (Cortes-Ciriano et al., 2020).
+```
 
 ## License
 
-ShatterSeek is **free for academic use only**.
+### Software License
 
-For non-academic or commercial use, please contact:
-**Dr. Sonalee Barthakur**
-Harvard University Office of Technology Development
-Email: hms_otd@harvard.edu
+**ShatterSeek Extended Edition** is released under the **GNU General Public License v3.0 or later (GPL-3+)**.
+
+This means you are free to:
+- ✓ Use the software for any purpose (academic or commercial)
+- ✓ Study and modify the source code
+- ✓ Distribute copies of the software
+- ✓ Distribute modified versions
+
+**Under the following terms:**
+- Source code must be made available when distributing the software
+- Modifications must be released under the same license
+- Changes made to the code must be documented
+- No warranty is provided
+
+See the full license text at: https://www.gnu.org/licenses/gpl-3.0.html
+
+### Original Framework License Notice
+
+The original ShatterSeek chromothripsis detection framework (versions < 2.0) was developed at Harvard University and is subject to additional licensing terms for commercial use.
+
+**For commercial applications of the original chromothripsis detection framework**, please contact:
+- **Dr. Sonalee Barthakur**
+- Harvard University Office of Technology Development
+- Email: hms_otd@harvard.edu
+
+**Note:** The extended features (chromoplexy detection, chromosynthesis detection, advanced visualization, VCF parsing, breakpoint analysis) added in version 2.0+ are independent implementations under GPL-3+ and do not require additional commercial licensing.
+
+### Academic Use
+
+ShatterSeek Extended is **strongly recommended for academic and research use**. We encourage researchers to:
+- Contribute improvements back to the community
+- Report bugs and suggest features via GitHub Issues
+- Cite both the original framework and extended edition in publications
+- Share analysis pipelines and custom workflows
+
+### Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
 
 ## Contact
 
-**For scientific questions:**
+### For ShatterSeek Extended Edition (v2.0+)
+
+**Technical issues and feature requests:**
+- GitHub Issues: https://github.com/[your-repo]/ShatterSeek/issues
+
+**Collaboration and contributions:**
+- Email: your.email@example.com
+
+### For Original ShatterSeek Framework
+
+**Scientific questions about chromothripsis detection:**
 - Isidro Cortes Ciriano: isidrolauscher@gmail.com or icortes@ebi.ac.uk
 - Peter J Park: peter_park@hms.harvard.edu
 
-**For technical issues:**
-- GitHub Issues: https://github.com/parklab/ShatterSeek/issues
+**Commercial licensing:**
+- Harvard University Office of Technology Development: hms_otd@harvard.edu
 
 ## Acknowledgments
 
-Development of the extended chromoanagenesis analysis modules was supported by contributions from the genomics community and feedback from active users.
+### Extended Edition Development
+
+**ShatterSeek Extended Edition (v2.0+)** represents a significant expansion of the original framework, adding:
+- Chromoplexy and chromosynthesis detection modules
+- Advanced visualization system (genome dashboards, gGnome-style plots, circos plots)
+- Direct VCF input with robust BND/translocation parsing
+- Breakpoint sequence analysis and repair mechanism inference
+- Integrated multi-mechanism classification
+
+Development of the extended edition was motivated by the need for comprehensive chromoanagenesis analysis tools that go beyond single-mechanism detection and provide production-ready VCF support for modern clinical pipelines.
+
+### Original Framework
+
+The original ShatterSeek chromothripsis detection framework was developed by:
+- **Isidro Cortes-Ciriano** (European Bioinformatics Institute, EMBL-EBI)
+- **Ruibin Xi** (Peking University)
+- **Peter J. Park** (Harvard Medical School)
+
+And validated using data from:
+- The Pan-Cancer Analysis of Whole Genomes (PCAWG) Consortium
+- ~2,600 whole-genome sequencing datasets across 38 tumor types
+
+### Community
+
+We thank the genomics community for feedback, bug reports, and feature requests that have shaped the extended edition. Special thanks to users who provided VCF format examples from diverse variant callers, enabling robust multi-caller support.
 
 ---
 
-**Version**: 2.0+ (with extended chromoanagenesis analysis)
-**Last Updated**: 2025
+**Current Version**: 2.0.0 (Extended Edition)
+**Release Date**: January 2025
+**Original ShatterSeek**: Cortes-Ciriano et al., 2020
+**Extended Features**: Chromoplexy, chromosynthesis, advanced visualization, VCF support

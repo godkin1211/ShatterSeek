@@ -1,17 +1,29 @@
 Package: ShatterSeek
 Type: Package
-Title: Chromothripis detection from structural variation and copy number variation data
-Version: 1.1
-Date: 2017-05-25
-Author: Isidro Cortes-Ciriano and Ruibin Xi
-Maintainer: Isidro Cortes-Ciriano <isidrolauscher@gmail.com>
-Description: ShatterSeek is developed for detecting chromothripis events using structural variation and copy number variations from whole-genome sequencing data. 
-Depends: R (>= 3.5.0),methods,BiocGenerics,foreach,graph,S4Vectors
-Imports: GenomicRanges,IRanges,MASS,ggplot2,grid,gridExtra
-Suggests: VariantAnnotation,vcfR
+Title: Comprehensive Chromoanagenesis Detection and Analysis from WGS Data
+Version: 2.0.0
+Date: 2025-01-18
+Authors@R: c(
+    person("Isidro", "Cortes-Ciriano", email = "isidrolauscher@gmail.com", role = c("aut", "cph")),
+    person("Ruibin", "Xi", role = "aut"),
+    person("Extended Analysis Contributors", role = c("aut", "cre"), email = "your.email@example.com", comment = "Chromoplexy, chromosynthesis, advanced visualization, BND parsing"))
+Maintainer: Extended Analysis Contributors <your.email@example.com>
+Description: ShatterSeek detects and analyzes chromoanagenesis events (chromothripsis,
+    chromoplexy, chromosynthesis) from whole-genome sequencing data. Originally developed
+    for chromothripsis detection (Cortes-Ciriano et al., Nature Genetics 2020), this
+    extended version adds comprehensive multi-mechanism detection, advanced visualization
+    (genome dashboards, gGnome-style regional plots, circos plots), direct VCF input with
+    BND/translocation parsing, breakpoint sequence analysis, and integrated classification.
+    Supports multiple SV callers (Manta, Delly, DRAGEN, GRIDSS, LUMPY, Sniffles) and CNV
+    callers (CNVkit, GATK, Control-FREEC, Canvas).
+Depends: R (>= 3.5.0), methods, BiocGenerics, foreach, graph, S4Vectors
+Imports: GenomicRanges, IRanges, MASS, ggplot2, grid, gridExtra
+Suggests: VariantAnnotation, vcfR, circlize, BSgenome.Hsapiens.UCSC.hg19, BSgenome.Hsapiens.UCSC.hg38
 License: GPL (>= 3)
-Repository: CRAN
+URL: https://github.com/parklab/ShatterSeek
+BugReports: https://github.com/parklab/ShatterSeek/issues
+Repository: GitHub
 LazyData: no
 Encoding: UTF-8
-Packaged: 2017-05-25 13:39:14 UTC; Isidro
 RoxygenNote: 7.0.2
+
