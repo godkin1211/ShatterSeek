@@ -1,3 +1,37 @@
+#' Sort chromosomes in natural order
+#'
+#' @param chroms Character vector of chromosome names
+#' @return Sorted character vector
+#' @keywords internal
+sort_chromosomes <- function(chroms) {
+    # Extract numeric part
+    chr_nums <- gsub("^chr", "", chroms)
+
+    # Separate autosomes and sex chromosomes
+    auto <- chr_nums[!chr_nums %in% c("X", "Y", "M", "MT")]
+    sex <- chr_nums[chr_nums %in% c("X", "Y")]
+    mito <- chr_nums[chr_nums %in% c("M", "MT")]
+
+    # Sort autosomes numerically
+    if (length(auto) > 0) {
+        auto <- auto[order(as.numeric(auto))]
+    }
+
+    # Combine in order
+    sorted_nums <- c(auto, sex, mito)
+
+    # Add back "chr" prefix if original had it
+    if (any(grepl("^chr", chroms))) {
+        sorted_chroms <- paste0("chr", sorted_nums)
+    } else {
+        sorted_chroms <- sorted_nums
+    }
+
+    # Only return chromosomes that exist in input
+    sorted_chroms[sorted_chroms %in% chroms]
+}
+
+
 #' Plot mechanism landscape across chromosomes
 #'
 #' Creates a genome-wide view showing distribution of chromoanagenesis mechanisms
@@ -27,8 +61,8 @@ plot_mechanism_landscape <- function(mixed_mechanisms_result,
         return(NULL)
     }
 
-    # Prepare chromosome order
-    chr_order <- paste0("chr", c(1:22, "X", "Y"))
+    # Prepare chromosome order using natural sorting
+    chr_order <- sort_chromosomes(unique(locations$chrom))
     locations$chrom <- factor(locations$chrom, levels = chr_order)
 
     # Color scheme for mechanisms
@@ -158,9 +192,8 @@ plot_chromosome_mechanisms <- function(mixed_mechanisms_result,
 
     locations <- mixed_mechanisms_result$mechanism_locations
 
-    # Create presence/absence matrix
-    chr_order <- paste0("chr", c(1:22, "X", "Y"))
-    chr_order <- chr_order[chr_order %in% chr_class$chrom]
+    # Create presence/absence matrix using natural chromosome sorting
+    chr_order <- sort_chromosomes(chr_class$chrom)
 
     mechanisms <- c("chromothripsis", "chromoplexy", "chromosynthesis")
 
