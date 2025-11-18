@@ -415,11 +415,37 @@ read_cnv_vcf <- function(vcf_file,
         start  # Use start if END not available
     }
 
-    # Get copy number
-    cn <- if (cn_field %in% colnames(info)) {
-        as.numeric(info[[cn_field]])
+    # Get copy number - check if it's in FORMAT or INFO
+    if (grepl("^FORMAT:", cn_field)) {
+        # Extract from FORMAT field (sample-specific)
+        field_name <- sub("^FORMAT:", "", cn_field)
+        geno <- VariantAnnotation::geno(vcf)
+
+        if (!field_name %in% names(geno)) {
+            stop(sprintf("FORMAT field '%s' not found in VCF", field_name))
+        }
+
+        # Get CN values - if multi-sample, use first sample or specified sample
+        cn_matrix <- geno[[field_name]]
+        if (is.matrix(cn_matrix)) {
+            if (!is.null(sample_name)) {
+                if (!sample_name %in% colnames(cn_matrix)) {
+                    stop(sprintf("Sample '%s' not found in VCF", sample_name))
+                }
+                cn <- as.numeric(cn_matrix[, sample_name])
+            } else {
+                # Use first sample
+                cn <- as.numeric(cn_matrix[, 1])
+            }
+        } else {
+            cn <- as.numeric(cn_matrix)
+        }
     } else {
-        stop(sprintf("CN field '%s' not found in VCF INFO", cn_field))
+        # Extract from INFO field
+        if (!cn_field %in% colnames(info)) {
+            stop(sprintf("INFO field '%s' not found in VCF", cn_field))
+        }
+        cn <- as.numeric(info[[cn_field]])
     }
 
     # Remove NA values
@@ -504,8 +530,8 @@ read_cnv_vcf <- function(vcf_file,
     chrom <- fix[, "CHROM"]
     start <- as.numeric(fix[, "POS"])
 
-    # Extract INFO
-    info_df <- vcfR::extract.info(vcf, element = c("END", cn_field))
+    # Extract INFO (always need END)
+    info_df <- vcfR::extract.info(vcf, element = "END")
 
     end <- if ("END" %in% colnames(info_df)) {
         as.numeric(info_df[, "END"])
@@ -513,10 +539,40 @@ read_cnv_vcf <- function(vcf_file,
         start
     }
 
-    cn <- if (cn_field %in% colnames(info_df)) {
-        as.numeric(info_df[, cn_field])
+    # Get copy number - check if it's in FORMAT or INFO
+    if (grepl("^FORMAT:", cn_field)) {
+        # Extract from FORMAT field (sample-specific)
+        field_name <- sub("^FORMAT:", "", cn_field)
+
+        # Use extract.gt to get FORMAT field
+        cn_matrix <- vcfR::extract.gt(vcf, element = field_name, as.numeric = TRUE)
+
+        if (is.null(cn_matrix)) {
+            stop(sprintf("FORMAT field '%s' not found in VCF", field_name))
+        }
+
+        # Get CN values - if multi-sample, use first sample or specified sample
+        if (is.matrix(cn_matrix)) {
+            if (!is.null(sample_name)) {
+                if (!sample_name %in% colnames(cn_matrix)) {
+                    stop(sprintf("Sample '%s' not found in VCF", sample_name))
+                }
+                cn <- as.numeric(cn_matrix[, sample_name])
+            } else {
+                # Use first sample
+                cn <- as.numeric(cn_matrix[, 1])
+            }
+        } else {
+            cn <- as.numeric(cn_matrix)
+        }
     } else {
-        stop(sprintf("CN field '%s' not found in VCF INFO", cn_field))
+        # Extract from INFO field
+        info_cn <- vcfR::extract.info(vcf, element = cn_field)
+
+        if (is.null(info_cn) || !cn_field %in% colnames(info_cn)) {
+            stop(sprintf("INFO field '%s' not found in VCF", cn_field))
+        }
+        cn <- as.numeric(info_cn[, cn_field])
     }
 
     # Remove NA values

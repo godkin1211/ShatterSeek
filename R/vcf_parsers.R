@@ -147,7 +147,14 @@
     info <- VariantAnnotation::info(vcf)
     info_names <- colnames(info)
 
-    # Try caller-specific fields first
+    # Check FORMAT fields for DRAGEN and other callers that use sample-specific CN
+    geno <- VariantAnnotation::geno(vcf)
+    format_names <- names(geno)
+
+    # DRAGEN uses FORMAT/CN instead of INFO/CN
+    if (caller == "dragen" && "CN" %in% format_names) return("FORMAT:CN")
+
+    # Try caller-specific INFO fields first
     if (caller == "cnvkit" && "CN" %in% info_names) return("CN")
     if (caller == "gatk" && "CN" %in% info_names) return("CN")
     if (caller == "controlfreec") {
@@ -156,10 +163,14 @@
     }
     if (caller == "canvas" && "CN" %in% info_names) return("CN")
 
-    # Generic detection
+    # Generic detection - check INFO first, then FORMAT
     if ("CN" %in% info_names) return("CN")
     if ("CNV" %in% info_names) return("CNV")
     if ("TOTAL_CN" %in% info_names) return("TOTAL_CN")
+
+    # Check FORMAT fields as fallback
+    if ("CN" %in% format_names) return("FORMAT:CN")
+    if ("CNV" %in% format_names) return("FORMAT:CNV")
 
     stop("Could not detect copy number field in VCF. Please specify 'cn_field' parameter.")
 }
@@ -172,7 +183,14 @@
     info_lines <- grep("^##INFO=<ID=", vcf@meta, value = TRUE)
     info_names <- gsub("^##INFO=<ID=([^,]+),.*", "\\1", info_lines)
 
-    # Try caller-specific fields first
+    # Extract FORMAT field names from meta
+    format_lines <- grep("^##FORMAT=<ID=", vcf@meta, value = TRUE)
+    format_names <- gsub("^##FORMAT=<ID=([^,]+),.*", "\\1", format_lines)
+
+    # DRAGEN uses FORMAT/CN instead of INFO/CN
+    if (caller == "dragen" && "CN" %in% format_names) return("FORMAT:CN")
+
+    # Try caller-specific INFO fields first
     if (caller == "cnvkit" && "CN" %in% info_names) return("CN")
     if (caller == "gatk" && "CN" %in% info_names) return("CN")
     if (caller == "controlfreec") {
@@ -181,10 +199,14 @@
     }
     if (caller == "canvas" && "CN" %in% info_names) return("CN")
 
-    # Generic detection
+    # Generic detection - check INFO first, then FORMAT
     if ("CN" %in% info_names) return("CN")
     if ("CNV" %in% info_names) return("CNV")
     if ("TOTAL_CN" %in% info_names) return("TOTAL_CN")
+
+    # Check FORMAT fields as fallback
+    if ("CN" %in% format_names) return("FORMAT:CN")
+    if ("CNV" %in% format_names) return("FORMAT:CNV")
 
     stop("Could not detect copy number field in VCF. Please specify 'cn_field' parameter.")
 }
