@@ -123,22 +123,28 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
     if (!is.null(chromoanagenesis_result$chromothripsis)) {
         chromoth <- chromoanagenesis_result$chromothripsis$classification
 
-        # Filter by confidence
+        # Filter by classification - only keep Likely and Possible
         if (!is.null(chromoth) && nrow(chromoth) > 0) {
-            # Check if confidence_score column exists
-            if ("confidence_score" %in% colnames(chromoth)) {
-                chromoth <- chromoth[!is.na(chromoth$confidence_score) &
-                                    chromoth$confidence_score >= min_confidence, ]
+            # Filter by classification first
+            if ("classification" %in% colnames(chromoth)) {
+                likely_possible <- chromoth[!is.na(chromoth$classification) &
+                                           chromoth$classification %in%
+                                           c("Likely chromothripsis", "Possible chromothripsis"), ]
             } else {
-                # No confidence score, keep all
-                chromoth <- chromoth
+                likely_possible <- chromoth
             }
 
-            if (nrow(chromoth) > 0) {
-                for (i in 1:nrow(chromoth)) {
+            # Then filter by confidence score if needed
+            if (nrow(likely_possible) > 0 && "confidence_score" %in% colnames(likely_possible)) {
+                likely_possible <- likely_possible[!is.na(likely_possible$confidence_score) &
+                                                   likely_possible$confidence_score >= min_confidence, ]
+            }
+
+            if (nrow(likely_possible) > 0) {
+                for (i in 1:nrow(likely_possible)) {
                     # Get confidence score if available
-                    confidence <- if ("confidence_score" %in% colnames(chromoth)) {
-                        as.numeric(chromoth$confidence_score[i])
+                    confidence <- if ("confidence_score" %in% colnames(likely_possible)) {
+                        as.numeric(likely_possible$confidence_score[i])
                     } else {
                         0.8  # Default high confidence for chromothripsis
                     }
@@ -146,12 +152,12 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
                     # Chromothripsis affects whole chromosome, no specific start/end
                     locations[[length(locations) + 1]] <- list(
                         mechanism = "chromothripsis",
-                        chrom = as.character(chromoth$chrom[i]),
+                        chrom = as.character(likely_possible$chrom[i]),
                         start = NA_real_,  # Whole chromosome, no specific region
                         end = NA_real_,
                         confidence = confidence,
-                        classification = as.character(chromoth$classification[i]),
-                        event_id = paste0("CT_", chromoth$chrom[i])
+                        classification = as.character(likely_possible$classification[i]),
+                        event_id = paste0("CT_", likely_possible$chrom[i])
                     )
                 }
             }
