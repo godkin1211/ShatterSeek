@@ -13,6 +13,8 @@
 #' @return An SVs object containing the structural variations
 #' @note Chromosome names are automatically standardized to match ShatterSeek's
 #'   expected format (1, 2, ..., 22, X). Any "chr" prefix will be removed.
+#'   SVs/CNVs on unsupported chromosomes (Y, M/MT, contigs, decoys, etc.) will be
+#'   automatically excluded.
 #' @details
 #' This function handles various VCF formats from different SV callers:
 #'
@@ -94,6 +96,8 @@ read_sv_vcf <- function(vcf_file,
 #' @return A CNVsegs object containing copy number segments
 #' @note Chromosome names are automatically standardized to match ShatterSeek's
 #'   expected format (1, 2, ..., 22, X). Any "chr" prefix will be removed.
+#'   SVs/CNVs on unsupported chromosomes (Y, M/MT, contigs, decoys, etc.) will be
+#'   automatically excluded.
 #' @details
 #' This function handles CNV VCF formats from different callers:
 #'
@@ -236,6 +240,24 @@ read_cnv_vcf <- function(vcf_file,
     result$chrom1 <- gsub("^MT$", "M", result$chrom1)
     result$chrom2 <- gsub("^MT$", "M", result$chrom2)
 
+    # Filter to only supported chromosomes (1-22, X)
+    # ShatterSeek only supports autosomes and X chromosome
+    supported_chroms <- c(as.character(1:22), "X")
+    keep_chrom <- result$chrom1 %in% supported_chroms & result$chrom2 %in% supported_chroms
+
+    if (sum(!keep_chrom) > 0) {
+        excluded <- sum(!keep_chrom)
+        message(sprintf("Excluded %d SVs on unsupported chromosomes (Y, M, contigs, etc.)", excluded))
+    }
+
+    result$chrom1 <- result$chrom1[keep_chrom]
+    result$pos1 <- result$pos1[keep_chrom]
+    result$chrom2 <- result$chrom2[keep_chrom]
+    result$pos2 <- result$pos2[keep_chrom]
+    result$svtype <- result$svtype[keep_chrom]
+    result$strand1 <- result$strand1[keep_chrom]
+    result$strand2 <- result$strand2[keep_chrom]
+
     # Create SVs object
     svs <- SVs(
         chrom1 = result$chrom1,
@@ -320,6 +342,20 @@ read_cnv_vcf <- function(vcf_file,
     # Convert MT to M if present
     result$chrom1 <- gsub("^MT$", "M", result$chrom1)
     result$chrom2 <- gsub("^MT$", "M", result$chrom2)
+
+    # Filter to only supported chromosomes (1-22, X)
+    # ShatterSeek only supports autosomes and X chromosome
+    supported_chroms <- c(as.character(1:22), "X")
+    keep_chrom <- result$chrom1 %in% supported_chroms & result$chrom2 %in% supported_chroms
+
+    if (sum(!keep_chrom) > 0) {
+        excluded <- sum(!keep_chrom)
+        message(sprintf("Excluded %d SVs on unsupported chromosomes (Y, M, contigs, etc.)", excluded))
+    }
+
+    for (field in names(result)) {
+        result[[field]] <- result[[field]][keep_chrom]
+    }
 
     # Create SVs object
     svs <- SVs(
@@ -410,6 +446,18 @@ read_cnv_vcf <- function(vcf_file,
     # Convert MT to M if present
     df$chrom <- gsub("^MT$", "M", df$chrom)
 
+    # Filter to only supported chromosomes (1-22, X)
+    # ShatterSeek only supports autosomes and X chromosome
+    supported_chroms <- c(as.character(1:22), "X")
+    keep_chrom <- df$chrom %in% supported_chroms
+
+    if (sum(!keep_chrom) > 0) {
+        excluded <- sum(!keep_chrom)
+        message(sprintf("Excluded %d CNV segments on unsupported chromosomes (Y, M, contigs, etc.)", excluded))
+    }
+
+    df <- df[keep_chrom, ]
+
     # Create CNVsegs object
     cnvs <- CNVsegs(
         chrom = df$chrom,
@@ -494,6 +542,18 @@ read_cnv_vcf <- function(vcf_file,
 
     # Convert MT to M if present
     df$chrom <- gsub("^MT$", "M", df$chrom)
+
+    # Filter to only supported chromosomes (1-22, X)
+    # ShatterSeek only supports autosomes and X chromosome
+    supported_chroms <- c(as.character(1:22), "X")
+    keep_chrom <- df$chrom %in% supported_chroms
+
+    if (sum(!keep_chrom) > 0) {
+        excluded <- sum(!keep_chrom)
+        message(sprintf("Excluded %d CNV segments on unsupported chromosomes (Y, M, contigs, etc.)", excluded))
+    }
+
+    df <- df[keep_chrom, ]
 
     # Create CNVsegs object
     cnvs <- CNVsegs(
