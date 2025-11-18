@@ -65,6 +65,10 @@ plot_mechanism_landscape <- function(mixed_mechanisms_result,
     chr_order <- sort_chromosomes(unique(locations$chrom))
     locations$chrom <- factor(locations$chrom, levels = chr_order)
 
+    # Define mechanism order to match y-axis labels
+    mechanism_order <- c("chromothripsis", "chromoplexy", "chromosynthesis")
+    locations$mechanism <- factor(locations$mechanism, levels = mechanism_order)
+
     # Color scheme for mechanisms
     mechanism_colors <- c(
         "chromothripsis" = "#E41A1C",
