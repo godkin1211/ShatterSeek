@@ -584,13 +584,19 @@
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
                 # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
-                pattern <- "([\\[\\]])([^:]+):([0-9]+)([\\[\\]])"
+                # Use alternation instead of character class for clearer bracket matching
+                pattern <- "(\\[|\\])([^:]+):([0-9]+)(\\[|\\])"
                 match <- regexec(pattern, alt_str)
                 if (match[[1]][1] != -1) {
                     matches <- regmatches(alt_str, match)[[1]]
                     cat(sprintf("  Regex matched! Extracted %d groups\n", length(matches)))
-                    if (length(matches) >= 5) {
-                        # Extract chromosome and position (matches[3] and matches[4])
+                    if (length(matches) >= 4) {
+                        # Extract chromosome and position
+                        # matches[1] = full match
+                        # matches[2] = opening bracket ([ or ])
+                        # matches[3] = chromosome
+                        # matches[4] = position
+                        # matches[5] = closing bracket ([ or ])
                         mate_chr <- matches[3]
                         mate_pos <- as.numeric(matches[4])
 
@@ -603,7 +609,7 @@
                         pos2[i] <- mate_pos
                         cat(sprintf("  Final: chrom2=%s, pos2=%d\n", chrom2[i], pos2[i]))
                     } else {
-                        cat(sprintf("  ERROR: Only %d matches (expected 5)\n", length(matches)))
+                        cat(sprintf("  ERROR: Only %d matches (expected 4+)\n", length(matches)))
                     }
                 } else {
                     cat(sprintf("  Regex did NOT match\n"))
@@ -699,13 +705,19 @@
 
                 # Parse bracket notation: ]chr:pos] or [chr:pos[
                 # Patterns: N[chr:pos[, [chr:pos[N, N]chr:pos], ]chr:pos]N
-                pattern <- "([\\[\\]])([^:]+):([0-9]+)([\\[\\]])"
+                # Use alternation instead of character class for clearer bracket matching
+                pattern <- "(\\[|\\])([^:]+):([0-9]+)(\\[|\\])"
                 match <- regexec(pattern, alt_str)
                 if (match[[1]][1] != -1) {
                     matches <- regmatches(alt_str, match)[[1]]
                     cat(sprintf("  Regex matched! Extracted %d groups\n", length(matches)))
-                    if (length(matches) >= 5) {
-                        # Extract chromosome and position (matches[3] and matches[4])
+                    if (length(matches) >= 4) {
+                        # Extract chromosome and position
+                        # matches[1] = full match
+                        # matches[2] = opening bracket ([ or ])
+                        # matches[3] = chromosome
+                        # matches[4] = position
+                        # matches[5] = closing bracket ([ or ])
                         mate_chr <- matches[3]
                         mate_pos <- as.numeric(matches[4])
 
@@ -718,7 +730,7 @@
                         pos2[i] <- mate_pos
                         cat(sprintf("  Final: chrom2=%s, pos2=%d\n", chrom2[i], pos2[i]))
                     } else {
-                        cat(sprintf("  ERROR: Only %d matches (expected 5)\n", length(matches)))
+                        cat(sprintf("  ERROR: Only %d matches (expected 4+)\n", length(matches)))
                     }
                 } else {
                     cat(sprintf("  Regex did NOT match\n"))
