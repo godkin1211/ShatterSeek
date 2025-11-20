@@ -108,9 +108,9 @@ test_builtin_data <- function() {
     # Test classification
     cat("\n  Testing classification...\n")
     classification <- classify_chromothripsis(
-        chromothripsis_result = ct_result,
+        chromoth_output = ct_result,
         min_cluster_size = 6,
-        min_oscillations = 4
+        min_cn_oscillations = 4
     )
 
     stopifnot(nrow(classification) > 0)
@@ -306,24 +306,24 @@ test_bnd_parsing <- function() {
     unlink(tmp_vcf)
 
     stopifnot(!is.null(sv_data))
-    cat(sprintf("  ✓ Parsed %d SV records\n", nrow(sv_data)))
+    cat(sprintf("  ✓ Parsed %d SV records\n", length(sv_data@chrom1)))
 
     # Check for TRA records
-    tra_records <- sv_data[sv_data$SVtype == "TRA", ]
-    cat(sprintf("  ✓ Found %d TRA records\n", nrow(tra_records)))
+    tra_idx <- which(sv_data@SVtype == "TRA")
+    cat(sprintf("  ✓ Found %d TRA records\n", length(tra_idx)))
 
-    stopifnot(nrow(tra_records) > 0)
+    stopifnot(length(tra_idx) > 0)
 
     # Verify mate coordinates
     cat("\n  Verifying mate coordinates...\n")
-    for (i in 1:nrow(tra_records)) {
+    for (i in tra_idx) {
         cat(sprintf("    TRA %d: %s:%d -> %s:%d\n",
-                    i,
-                    tra_records$chrom1[i], tra_records$pos1[i],
-                    tra_records$chrom2[i], tra_records$pos2[i]))
+                    which(tra_idx == i),
+                    sv_data@chrom1[i], sv_data@pos1[i],
+                    sv_data@chrom2[i], sv_data@pos2[i]))
 
         # Should be interchromosomal
-        stopifnot(tra_records$chrom1[i] != tra_records$chrom2[i])
+        stopifnot(sv_data@chrom1[i] != sv_data@chrom2[i])
     }
 
     cat("  ✓ All TRA records are interchromosomal\n")

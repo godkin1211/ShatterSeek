@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ShatterSeek Extended Edition - Validation Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+.container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+h2 { color: #34495e; margin-top: 30px; }
+.summary { background: #ecf0f1; padding: 20px; border-radius: 5px; margin: 20px 0; }
+.pass { color: #27ae60; font-weight: bold; }
+.fail { color: #e74c3c; font-weight: bold; }
+.metric { display: inline-block; margin: 10px 20px; }
+.metric-label { font-weight: bold; color: #7f8c8d; }
+.metric-value { font-size: 24px; margin-left: 10px; }
+.test-detail { background: #fff; border-left: 4px solid #3498db; padding: 15px; margin: 15px 0; }
+.test-pass { border-left-color: #27ae60; }
+.test-fail { border-left-color: #e74c3c; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+th { background-color: #34495e; color: white; }
+tr:hover { background-color: #f5f5f5; }
+.timestamp { color: #95a5a6; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class='container'>
+<h1>ShatterSeek Extended Edition v2.0.0</h1>
+<h2>Phase 1 Validation Report</h2>
+<p class='timestamp'>Generated: 2025-11-20 22:00:31</p>
+
+<!-- Summary -->
+<div class='summary'>
+<h3>Summary</h3>
+<div class='metric'><span class='metric-label'>Total Tests:</span><span class='metric-value'>3</span></div>
+<div class='metric'><span class='metric-label'>Passed:</span><span class='metric-value pass'>3</span></div>
+<div class='metric'><span class='metric-label'>Failed:</span><span class='metric-value fail'>0</span></div>
+<div class='metric'><span class='metric-label'>Success Rate:</span><span class='metric-value'>100.0%</span></div>
+</div>
+
+<h2>Test Results</h2>
+<table>
+<tr><th>Test Name</th><th>Status</th><th>Details</th></tr>
+<tr>
+<td>Built-in Dataset (DO17373)</td>
+<td class='pass'>✓ PASS</td>
+<td>All checks passed</td>
+</tr>
+<tr>
+<td>Synthetic Data Generation & Detection</td>
+<td class='pass'>✓ PASS</td>
+<td>All checks passed</td>
+</tr>
+<tr>
+<td>BND/TRA ALT Field Parsing</td>
+<td class='pass'>✓ PASS</td>
+<td>All checks passed</td>
+</tr>
+</table>
+
+<h2>Test Descriptions</h2>
+
+<div class='test-detail test-pass'>
+<h3>1. Built-in Dataset (DO17373)</h3>
+<p><strong>Purpose:</strong> Validate chromothripsis detection on the example dataset from Cortes-Ciriano et al. (2020)</p>
+<p><strong>Checks:</strong></p>
+<ul>
+<li>SV and CNV data loading</li>
+<li>Chromothripsis detection (original implementation)</li>
+<li>Comprehensive chromoanagenesis detection (extended edition)</li>
+<li>Classification functionality</li>
+<li>Consistency between original and extended implementations</li>
+</ul>
+</div>
+
+<div class='test-detail test-pass'>
+<h3>2. Synthetic Data Generation & Detection</h3>
+<p><strong>Purpose:</strong> Test detection sensitivity on synthetic chromothripsis events with known characteristics</p>
+<p><strong>Checks:</strong></p>
+<ul>
+<li>Synthetic data generation with realistic properties</li>
+<li>Detection sensitivity (target: ≥70%)</li>
+<li>Handling of different SV types and CN patterns</li>
+<li>Robustness across 10 independent test cases</li>
+</ul>
+</div>
+
+<div class='test-detail test-pass'>
+<h3>3. BND/TRA ALT Field Parsing</h3>
+<p><strong>Purpose:</strong> Validate VCF breakend (BND) record parsing for translocation detection</p>
+<p><strong>Checks:</strong></p>
+<ul>
+<li>Parsing of VCF 4.2+ bracket notation</li>
+<li>All bracket formats: [chr:pos[, ]chr:pos], etc.</li>
+<li>Correct mate chromosome and position extraction</li>
+<li>Interchromosomal event identification</li>
+<li>TRA record creation from BND records</li>
+</ul>
+</div>
+
+<h2>System Information</h2>
+<table>
+<tr><td><strong>R Version</strong></td><td>R version 4.4.2 (2024-10-31)</td></tr>
+<tr><td><strong>Platform</strong></td><td>aarch64-apple-darwin20</td></tr>
+<tr><td><strong>ShatterSeek Version</strong></td><td>2.0.0</td></tr>
+</table>
+
+<div class='summary' style='background: #d4edda; border: 1px solid #c3e6cb;'>
+<h3 style='color: #155724;'>✓ All Tests Passed</h3>
+<p>ShatterSeek Extended Edition passed all Phase 1 validation tests. Core functionality is working correctly.</p>
+<p><strong>Next Steps:</strong></p>
+<ul>
+<li>Proceed to Phase 2: PCAWG dataset validation</li>
+<li>Test on real clinical data</li>
+<li>Compare with other tools</li>
+</ul>
+</div>
+</div>
+</body>
+</html>
