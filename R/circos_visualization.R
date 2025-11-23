@@ -334,7 +334,7 @@ extract_chromoanagenesis_regions <- function(chromoanagenesis_result, mechanisms
         ct_class <- chromoanagenesis_result$chromothripsis$classification
         if (!is.null(ct_class) && nrow(ct_class) > 0) {
             ct_regions <- ct_class[ct_class$classification %in%
-                                  c("Likely chromothripsis", "Possible chromothripsis"), ]
+                                  c("High confidence", "Low confidence"), ]
             if (nrow(ct_regions) > 0) {
                 # Get start/end from detection_output chromSummary
                 ct_summary <- chromoanagenesis_result$chromothripsis$detection_output@chromSummary

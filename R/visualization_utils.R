@@ -27,7 +27,7 @@ get_chromosome_mechanism_summary <- function(chromoanagenesis_result) {
             if (!is.null(ct_class) && nrow(ct_class) > 0) {
                 ct_chr <- ct_class[ct_class$chrom == chr &
                                   ct_class$classification %in%
-                                  c("Likely chromothripsis", "Possible chromothripsis"), ]
+                                  c("High confidence", "Low confidence"), ]
                 if (nrow(ct_chr) > 0) {
                     mechanisms <- c(mechanisms, "chromothripsis")
                     n_events <- n_events + nrow(ct_chr)
@@ -194,7 +194,7 @@ annotate_chromoanagenesis_regions <- function(cnv_data, chromoanagenesis_result)
         ct_class <- chromoanagenesis_result$chromothripsis$classification
         if (!is.null(ct_class) && nrow(ct_class) > 0) {
             ct_chroms <- ct_class$chrom[ct_class$classification %in%
-                                       c("Likely chromothripsis", "Possible chromothripsis")]
+                                       c("High confidence", "Low confidence")]
             cnv_data$has_chromoanagenesis[cnv_data$chrom %in% ct_chroms] <- TRUE
         }
     }

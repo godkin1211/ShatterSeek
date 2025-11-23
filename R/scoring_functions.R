@@ -157,72 +157,140 @@ calculate_confidence_score <- function(chromSummary, chr = NULL) {
 }
 
 
-#' Classify chromothripsis events based on criteria
+#' Classify chromothripsis events based on criteria from Cortes-Ciriano et al.
 #'
-#' Applies evidence-based thresholds to classify chromosomes as likely
-#' chromothripsis, possible chromothripsis, or unlikely chromothripsis.
+#' Applies the classification criteria from the original ShatterSeek publication
+#' (Cortes-Ciriano et al., Nature Genetics 2020) to classify chromosomes as
+#' high confidence chromothripsis, low confidence chromothripsis, or not chromothripsis.
 #'
 #' @param chromoth_output Output from detect_chromothripsis function
-#' @param min_cluster_size Minimum number of SVs required (default: 6)
-#' @param min_cn_oscillations Minimum CN oscillating segments (default: 4)
-#' @param max_pval_clustering Maximum p-value for clustering test (default: 0.05)
 #' @return A data frame with classification results
+#' @details
+#' Classification criteria based on Korbel and Campbell (Cell 2013) and
+#' Cortes-Ciriano et al. (Nature Genetics 2020):
+#'
+#' **High confidence chromothripsis (Type 1 - single chromosome)**:
+#' - At least 6 interleaved intrachromosomal SVs
+#' - 7 or more contiguous segments oscillating between 2 CN states
+#' - Fragment joins test passed (p > 0.05, indicating random fragment joining)
+#' - Either chromosomal breakpoint enrichment (p < 0.05) OR exponential distribution test (p < 0.05)
+#'
+#' **High confidence chromothripsis (Type 2 - multi-chromosomal)**:
+#' - At least 3 interleaved intrachromosomal SVs
+#' - 4 or more interchromosomal SVs (translocations)
+#' - 7 or more contiguous segments oscillating between 2 CN states
+#' - Fragment joins test passed (p > 0.05)
+#'
+#' **Low confidence chromothripsis**:
+#' - At least 6 interleaved intrachromosomal SVs
+#' - 4, 5, or 6 contiguous segments oscillating between 2 CN states
+#' - Fragment joins test passed (p > 0.05)
+#' - Either chromosomal breakpoint enrichment (p < 0.05) OR exponential distribution test (p < 0.05)
+#'
+#' @references
+#' Korbel, J. O. & Campbell, P. J. Criteria for inference of chromothripsis in cancer genomes.
+#' Cell 152, 1226-1236 (2013).
+#'
+#' Cortes-Ciriano, I. et al. Comprehensive analysis of chromothripsis in 2,658 human cancers
+#' using whole-genome sequencing. Nat. Genet. 52, 331-341 (2020).
+#'
 #' @export
-classify_chromothripsis <- function(chromoth_output,
-                                   min_cluster_size = 6,
-                                   min_cn_oscillations = 4,
-                                   max_pval_clustering = 0.05) {
+classify_chromothripsis <- function(chromoth_output) {
 
     chromSummary <- chromoth_output@chromSummary
 
-    # Calculate confidence scores
-    scores <- calculate_confidence_score(chromSummary)
+    # Filter chromosomes with clusters
+    chromSummary <- chromSummary[chromSummary$clusterSize > 0, ]
 
-    if (nrow(scores) == 0) {
+    if (nrow(chromSummary) == 0) {
         return(data.frame(
             chrom = character(0),
             classification = character(0),
             cluster_size = numeric(0),
+            cluster_size_with_TRA = numeric(0),
             cn_oscillations = numeric(0),
+            pval_fragment_joins = numeric(0),
+            pval_exp_cluster = numeric(0),
+            chr_breakpoint_enrichment = numeric(0),
             confidence_score = numeric(0)
         ))
     }
+
+    # Calculate confidence scores (for backward compatibility and ranking)
+    scores <- calculate_confidence_score(chromSummary)
 
     # Merge scores with original summary
     result <- merge(chromSummary, scores[, c("chrom", "confidence_score", "confidence_category")],
                    by = "chrom", all.x = FALSE)
 
-    # Apply classification criteria
-    result$classification <- "Unlikely"
+    # Apply classification criteria based on tutorial
+    result$classification <- "Not chromothripsis"
 
     for (i in 1:nrow(result)) {
-        cluster_size <- result$clusterSize_including_TRA[i]
-        if (is.na(cluster_size)) cluster_size <- result$clusterSize[i]
+        # Extract key metrics
+        cluster_size_intra <- result$clusterSize[i]
+        cluster_size_total <- result$clusterSize_including_TRA[i]
+        if (is.na(cluster_size_total)) cluster_size_total <- cluster_size_intra
 
-        cn_osc <- result$max_number_oscillating_CN_segments_2_states[i]
-        if (is.na(cn_osc)) cn_osc <- result$max_number_oscillating_CN_segments_3_states[i]
+        num_TRA <- result$number_TRA[i]
+        if (is.na(num_TRA)) num_TRA <- 0
 
-        pval_cluster <- result$pval_exp_cluster[i]
+        cn_osc_2state <- result$max_number_oscillating_CN_segments_2_states[i]
+        cn_osc_3state <- result$max_number_oscillating_CN_segments_3_states[i]
 
-        # High confidence: meets all criteria
-        if (!is.na(cluster_size) && cluster_size >= min_cluster_size &&
-            !is.na(cn_osc) && cn_osc >= min_cn_oscillations &&
-            !is.na(pval_cluster) && pval_cluster < max_pval_clustering) {
-            result$classification[i] <- "Likely chromothripsis"
+        # Use 2-state as primary, fallback to 3-state
+        cn_osc <- cn_osc_2state
+        if (is.na(cn_osc)) cn_osc <- cn_osc_3state
+
+        pval_joins <- result$pval_fragment_joins[i]
+        pval_exp_cluster <- result$pval_exp_cluster[i]
+        pval_chr_enrich <- result$chr_breakpoint_enrichment[i]
+
+        # Check fragment joins test (CRITICAL: p > 0.05 means random joining)
+        fragment_joins_passed <- !is.na(pval_joins) && pval_joins > 0.05
+
+        # Check clustering tests (at least one should pass: p < 0.05 means clustering)
+        clustering_passed <- (!is.na(pval_exp_cluster) && pval_exp_cluster < 0.05) ||
+                            (!is.na(pval_chr_enrich) && pval_chr_enrich < 0.05)
+
+        # HIGH CONFIDENCE TYPE 1: Single/few chromosome, many intrachromosomal SVs
+        # - At least 6 intrachromosomal SVs
+        # - 7+ oscillating CN segments
+        # - Fragment joins test passed
+        # - Clustering test passed
+        if (!is.na(cluster_size_intra) && cluster_size_intra >= 6 &&
+            !is.na(cn_osc) && cn_osc >= 7 &&
+            fragment_joins_passed &&
+            clustering_passed) {
+            result$classification[i] <- "High confidence"
         }
-        # Moderate confidence: meets 2 out of 3 criteria
-        else if (sum(c(
-            !is.na(cluster_size) && cluster_size >= min_cluster_size,
-            !is.na(cn_osc) && cn_osc >= min_cn_oscillations,
-            !is.na(pval_cluster) && pval_cluster < max_pval_clustering
-        )) >= 2) {
-            result$classification[i] <- "Possible chromothripsis"
+        # HIGH CONFIDENCE TYPE 2: Multi-chromosomal
+        # - At least 3 intrachromosomal SVs
+        # - 4+ interchromosomal SVs
+        # - 7+ oscillating CN segments
+        # - Fragment joins test passed
+        else if (!is.na(cluster_size_intra) && cluster_size_intra >= 3 &&
+                 num_TRA >= 4 &&
+                 !is.na(cn_osc) && cn_osc >= 7 &&
+                 fragment_joins_passed) {
+            result$classification[i] <- "High confidence"
+        }
+        # LOW CONFIDENCE
+        # - At least 6 intrachromosomal SVs
+        # - 4-6 oscillating CN segments (note the upper bound!)
+        # - Fragment joins test passed
+        # - Clustering test passed
+        else if (!is.na(cluster_size_intra) && cluster_size_intra >= 6 &&
+                 !is.na(cn_osc) && cn_osc >= 4 && cn_osc <= 6 &&
+                 fragment_joins_passed &&
+                 clustering_passed) {
+            result$classification[i] <- "Low confidence"
         }
     }
 
     # Select key columns for output
     output_cols <- c("chrom", "classification", "confidence_score", "confidence_category",
-                    "clusterSize", "clusterSize_including_TRA",
+                    "clusterSize", "clusterSize_including_TRA", "number_TRA",
                     "max_number_oscillating_CN_segments_2_states",
                     "max_number_oscillating_CN_segments_3_states",
                     "pval_fragment_joins", "pval_exp_cluster", "chr_breakpoint_enrichment")
@@ -230,8 +298,11 @@ classify_chromothripsis <- function(chromoth_output,
     output_cols <- output_cols[output_cols %in% names(result)]
     result <- result[, output_cols]
 
-    # Sort by confidence score
-    result <- result[order(result$confidence_score, decreasing = TRUE), ]
+    # Sort by classification priority, then confidence score
+    result$class_priority <- ifelse(result$classification == "High confidence", 1,
+                                   ifelse(result$classification == "Low confidence", 2, 3))
+    result <- result[order(result$class_priority, -result$confidence_score), ]
+    result$class_priority <- NULL
 
     return(result)
 }
@@ -240,7 +311,8 @@ classify_chromothripsis <- function(chromoth_output,
 #' Generate a summary report of chromothripsis analysis
 #'
 #' Creates a human-readable summary of chromothripsis detection results,
-#' highlighting high-confidence events and providing interpretation guidance.
+#' highlighting high-confidence and low-confidence events based on the
+#' criteria from Cortes-Ciriano et al. (Nature Genetics 2020).
 #'
 #' @param chromoth_output Output from detect_chromothripsis function
 #' @param print_summary Logical, whether to print summary to console (default: TRUE)
@@ -252,20 +324,22 @@ summarize_chromothripsis <- function(chromoth_output, print_summary = TRUE) {
     classifications <- classify_chromothripsis(chromoth_output)
 
     # Count classifications
-    n_likely <- sum(classifications$classification == "Likely chromothripsis")
-    n_possible <- sum(classifications$classification == "Possible chromothripsis")
-    n_unlikely <- sum(classifications$classification == "Unlikely")
+    n_high <- sum(classifications$classification == "High confidence")
+    n_low <- sum(classifications$classification == "Low confidence")
+    n_not <- sum(classifications$classification == "Not chromothripsis")
 
     # Get high confidence chromosomes
-    high_conf <- classifications[classifications$confidence_category == "High", ]
+    high_conf <- classifications[classifications$classification == "High confidence", ]
+    low_conf <- classifications[classifications$classification == "Low confidence", ]
 
     # Prepare summary
     summary_list <- list(
         total_chromosomes_with_clusters = nrow(classifications),
-        likely_chromothripsis = n_likely,
-        possible_chromothripsis = n_possible,
-        unlikely_chromothripsis = n_unlikely,
+        high_confidence_chromothripsis = n_high,
+        low_confidence_chromothripsis = n_low,
+        not_chromothripsis = n_not,
         high_confidence_chromosomes = if(nrow(high_conf) > 0) high_conf$chrom else character(0),
+        low_confidence_chromosomes = if(nrow(low_conf) > 0) low_conf$chrom else character(0),
         detailed_results = classifications
     )
 
@@ -278,44 +352,58 @@ summarize_chromothripsis <- function(chromoth_output, print_summary = TRUE) {
         cat(sprintf("Total chromosomes with SV clusters: %d\n\n",
                    summary_list$total_chromosomes_with_clusters))
 
-        cat("Classification Results:\n")
-        cat(sprintf("  - Likely chromothripsis:   %d chromosome(s)\n", n_likely))
-        cat(sprintf("  - Possible chromothripsis: %d chromosome(s)\n", n_possible))
-        cat(sprintf("  - Unlikely:                %d chromosome(s)\n\n", n_unlikely))
+        cat("Classification Results (Cortes-Ciriano et al. 2020 criteria):\n")
+        cat(sprintf("  - High confidence: %d chromosome(s)\n", n_high))
+        cat(sprintf("  - Low confidence:  %d chromosome(s)\n", n_low))
+        cat(sprintf("  - Not chromothripsis: %d chromosome(s)\n\n", n_not))
 
         if (length(summary_list$high_confidence_chromosomes) > 0) {
             cat("High-confidence chromothripsis chromosomes:\n")
             cat(sprintf("  %s\n\n", paste(summary_list$high_confidence_chromosomes, collapse=", ")))
-        } else {
-            cat("No high-confidence chromothripsis events detected.\n\n")
         }
 
-        if (n_likely > 0 || n_possible > 0) {
+        if (length(summary_list$low_confidence_chromosomes) > 0) {
+            cat("Low-confidence chromothripsis chromosomes:\n")
+            cat(sprintf("  %s\n\n", paste(summary_list$low_confidence_chromosomes, collapse=", ")))
+        }
+
+        if (n_high == 0 && n_low == 0) {
+            cat("No chromothripsis events detected.\n\n")
+        }
+
+        if (n_high > 0 || n_low > 0) {
             cat("Detailed Results:\n")
-            cat(sprintf("%-8s %-25s %-10s %-12s %-10s\n",
-                       "Chrom", "Classification", "Confidence", "Cluster Size", "CN Osc."))
+            cat(sprintf("%-8s %-20s %-10s %-10s %-8s %-12s\n",
+                       "Chrom", "Classification", "CN Osc.", "Intra SVs", "TRA", "FragJoin p"))
             cat(rep("-", 70), "\n", sep="")
 
             for (i in 1:nrow(classifications)) {
-                if (classifications$classification[i] != "Unlikely") {
+                if (classifications$classification[i] != "Not chromothripsis") {
                     cn_osc <- classifications$max_number_oscillating_CN_segments_2_states[i]
                     if (is.na(cn_osc)) cn_osc <- classifications$max_number_oscillating_CN_segments_3_states[i]
                     if (is.na(cn_osc)) cn_osc <- "-"
 
-                    cluster_size <- classifications$clusterSize_including_TRA[i]
-                    if (is.na(cluster_size)) cluster_size <- classifications$clusterSize[i]
+                    cluster_size <- classifications$clusterSize[i]
+                    num_tra <- classifications$number_TRA[i]
+                    if (is.na(num_tra)) num_tra <- 0
 
-                    cat(sprintf("%-8s %-25s %-10.2f %-12d %-10s\n",
+                    pval_joins <- classifications$pval_fragment_joins[i]
+                    pval_joins_str <- if (!is.na(pval_joins)) sprintf("%.3f", pval_joins) else "-"
+
+                    cat(sprintf("%-8s %-20s %-10s %-10d %-8d %-12s\n",
                                classifications$chrom[i],
                                classifications$classification[i],
-                               classifications$confidence_score[i],
+                               cn_osc,
                                cluster_size,
-                               cn_osc))
+                               num_tra,
+                               pval_joins_str))
                 }
             }
         }
 
         cat("\n")
+        cat("Note: Fragment joins p-value > 0.05 indicates random fragment joining\n")
+        cat("      (characteristic of chromothripsis)\n")
         cat(rep("=", 70), "\n", sep="")
         cat("\n")
     }

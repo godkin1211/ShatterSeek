@@ -115,14 +115,14 @@ detect_chromoanagenesis <- function(SV.sample,
         results$chromothripsis <- list(
             detection_output = chromothripsis_result,
             classification = chromothripsis_classification,
-            n_likely = sum(chromothripsis_classification$classification == "Likely chromothripsis"),
-            n_possible = sum(chromothripsis_classification$classification == "Possible chromothripsis")
+            n_high_confidence = sum(chromothripsis_classification$classification == "High confidence"),
+            n_low_confidence = sum(chromothripsis_classification$classification == "Low confidence")
         )
 
         if (verbose) {
-            cat(sprintf("  Found %d likely and %d possible chromothripsis events.\n",
-                       results$chromothripsis$n_likely,
-                       results$chromothripsis$n_possible))
+            cat(sprintf("  Found %d high confidence and %d low confidence chromothripsis events.\n",
+                       results$chromothripsis$n_high_confidence,
+                       results$chromothripsis$n_low_confidence))
         }
     }
 
@@ -197,21 +197,39 @@ create_integrated_summary <- function(results) {
 
     # Chromothripsis summary
     if (!is.null(results$chromothripsis)) {
-        summary$chromothripsis_likely <- results$chromothripsis$n_likely
-        summary$chromothripsis_possible <- results$chromothripsis$n_possible
+        summary$chromothripsis_high_confidence <- results$chromothripsis$n_high_confidence
+        summary$chromothripsis_low_confidence <- results$chromothripsis$n_low_confidence
 
-        if (results$chromothripsis$n_likely > 0) {
-            likely_chroms <- results$chromothripsis$classification[
-                results$chromothripsis$classification$classification == "Likely chromothripsis",
-                "chrom"
-            ]
-            summary$chromothripsis_chromosomes <- paste(likely_chroms, collapse = ", ")
+        high_conf_chroms <- results$chromothripsis$classification[
+            results$chromothripsis$classification$classification == "High confidence",
+            "chrom"
+        ]
+        low_conf_chroms <- results$chromothripsis$classification[
+            results$chromothripsis$classification$classification == "Low confidence",
+            "chrom"
+        ]
+
+        if (length(high_conf_chroms) > 0) {
+            summary$chromothripsis_chromosomes <- paste(high_conf_chroms, collapse = ", ")
+            if (length(low_conf_chroms) > 0) {
+                summary$chromothripsis_chromosomes <- paste0(
+                    summary$chromothripsis_chromosomes,
+                    " (high); ",
+                    paste(low_conf_chroms, collapse = ", "),
+                    " (low)"
+                )
+            }
+        } else if (length(low_conf_chroms) > 0) {
+            summary$chromothripsis_chromosomes <- paste0(
+                paste(low_conf_chroms, collapse = ", "),
+                " (low confidence)"
+            )
         } else {
             summary$chromothripsis_chromosomes <- "None"
         }
     } else {
-        summary$chromothripsis_likely <- NA
-        summary$chromothripsis_possible <- NA
+        summary$chromothripsis_high_confidence <- NA
+        summary$chromothripsis_low_confidence <- NA
         summary$chromothripsis_chromosomes <- "Not analyzed"
     }
 
@@ -261,7 +279,8 @@ create_integrated_summary <- function(results) {
 
     # Overall assessment
     has_chromothripsis <- !is.null(results$chromothripsis) &&
-                         results$chromothripsis$n_likely > 0
+                         (results$chromothripsis$n_high_confidence > 0 ||
+                          results$chromothripsis$n_low_confidence > 0)
     has_chromoplexy <- !is.null(results$chromoplexy) &&
                       results$chromoplexy$likely_chromoplexy > 0
     has_chromosynthesis <- !is.null(results$chromosynthesis) &&
@@ -302,8 +321,8 @@ print.chromoanagenesis <- function(x, ...) {
     # Chromothripsis results
     if (!is.null(x$chromothripsis)) {
         cat("CHROMOTHRIPSIS:\n")
-        cat(sprintf("  - Likely events:   %d\n", x$chromothripsis$n_likely))
-        cat(sprintf("  - Possible events: %d\n", x$chromothripsis$n_possible))
+        cat(sprintf("  - High confidence: %d\n", x$chromothripsis$n_high_confidence))
+        cat(sprintf("  - Low confidence:  %d\n", x$chromothripsis$n_low_confidence))
         cat(sprintf("  - Chromosomes:     %s\n",
                    x$integrated_summary$chromothripsis_chromosomes))
         cat("\n")

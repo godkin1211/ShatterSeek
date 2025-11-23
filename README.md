@@ -138,7 +138,22 @@ chromothripsis <- detect_chromothripsis(
 
 # View results
 chromothripsis@chromSummary
+
+# Classify chromothripsis events (High/Low confidence)
+classification <- classify_chromothripsis(chromothripsis)
+print(classification)
+
+# Generate detailed summary report
+summarize_chromothripsis(chromothripsis)
 ```
+
+**Classification Levels** (based on Cortes-Ciriano et al. 2020):
+
+- **High confidence**: ≥6 intrachromosomal SVs, ≥7 oscillating CN segments, fragment joins test passed (p>0.05), clustering test passed
+- **Low confidence**: ≥6 intrachromosomal SVs, 4-6 oscillating CN segments, fragment joins test passed, clustering test passed
+- **Not chromothripsis**: Does not meet above criteria
+
+See `CHROMOTHRIPSIS_CLASSIFICATION.md` for detailed classification criteria.
 
 ### Comprehensive Chromoanagenesis Analysis
 

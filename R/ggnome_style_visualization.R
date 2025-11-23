@@ -108,7 +108,7 @@ get_region_coordinates <- function(chromoanagenesis_result, chrom, mechanism, re
             ct_class <- chromoanagenesis_result$chromothripsis$classification
             if (!is.null(ct_class) && nrow(ct_class) > 0) {
                 regions <- ct_class[ct_class$chrom == chrom &
-                                   ct_class$classification %in% c("Likely chromothripsis", "Possible chromothripsis"), ]
+                                   ct_class$classification %in% c("High confidence", "Low confidence"), ]
                 if (nrow(regions) >= region_idx) {
                     # Get start/end from detection_output chromSummary
                     ct_summary <- chromoanagenesis_result$chromothripsis$detection_output@chromSummary

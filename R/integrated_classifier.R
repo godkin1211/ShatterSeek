@@ -129,7 +129,7 @@ extract_mechanism_locations <- function(chromoanagenesis_result, min_confidence)
             if ("classification" %in% colnames(chromoth)) {
                 likely_possible <- chromoth[!is.na(chromoth$classification) &
                                            chromoth$classification %in%
-                                           c("Likely chromothripsis", "Possible chromothripsis"), ]
+                                           c("High confidence", "Low confidence"), ]
             } else {
                 likely_possible <- chromoth
             }

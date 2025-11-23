@@ -470,7 +470,7 @@ plot_mechanism_distribution <- function(chromoanagenesis_result) {
         if (!is.null(ct_class) && nrow(ct_class) > 0) {
             ct_summary <- table(ct_class$classification)
             for (cls in names(ct_summary)) {
-                if (ct_summary[cls] > 0 && cls %in% c("Likely chromothripsis", "Possible chromothripsis")) {
+                if (ct_summary[cls] > 0 && cls %in% c("High confidence", "Low confidence")) {
                     mech_counts <- rbind(mech_counts, data.frame(
                         mechanism = "Chromothripsis",
                         count = as.numeric(ct_summary[cls]),
