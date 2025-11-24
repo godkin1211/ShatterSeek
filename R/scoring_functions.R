@@ -164,6 +164,12 @@ calculate_confidence_score <- function(chromSummary, chr = NULL) {
 #' high confidence chromothripsis, low confidence chromothripsis, or not chromothripsis.
 #'
 #' @param chromoth_output Output from detect_chromothripsis function
+#' @param pval_fragment_joins_threshold Significance threshold for fragment joins test (default: 0.05).
+#'   Fragment joins p-value must be GREATER than this threshold to pass (indicating random joining).
+#'   Use 0.01 for more stringent filtering (higher specificity, lower sensitivity).
+#' @param pval_clustering_threshold Significance threshold for clustering tests (default: 0.05).
+#'   Clustering p-values must be LESS than this threshold to pass (indicating significant clustering).
+#'   Use 0.01 for more stringent filtering (higher specificity, lower sensitivity).
 #' @return A data frame with classification results
 #' @details
 #' Classification criteria based on Korbel and Campbell (Cell 2013) and
@@ -172,20 +178,27 @@ calculate_confidence_score <- function(chromSummary, chr = NULL) {
 #' **High confidence chromothripsis (Type 1 - single chromosome)**:
 #' - At least 6 interleaved intrachromosomal SVs
 #' - 7 or more contiguous segments oscillating between 2 CN states
-#' - Fragment joins test passed (p > 0.05, indicating random fragment joining)
-#' - Either chromosomal breakpoint enrichment (p < 0.05) OR exponential distribution test (p < 0.05)
+#' - Fragment joins test passed (p > pval_fragment_joins_threshold, default 0.05)
+#' - Either chromosomal breakpoint enrichment OR exponential distribution test
+#'   (p < pval_clustering_threshold, default 0.05)
 #'
 #' **High confidence chromothripsis (Type 2 - multi-chromosomal)**:
 #' - At least 3 interleaved intrachromosomal SVs
 #' - 4 or more interchromosomal SVs (translocations)
 #' - 7 or more contiguous segments oscillating between 2 CN states
-#' - Fragment joins test passed (p > 0.05)
+#' - Fragment joins test passed (p > pval_fragment_joins_threshold)
 #'
 #' **Low confidence chromothripsis**:
 #' - At least 6 interleaved intrachromosomal SVs
 #' - 4, 5, or 6 contiguous segments oscillating between 2 CN states
-#' - Fragment joins test passed (p > 0.05)
-#' - Either chromosomal breakpoint enrichment (p < 0.05) OR exponential distribution test (p < 0.05)
+#' - Fragment joins test passed (p > pval_fragment_joins_threshold)
+#' - Either chromosomal breakpoint enrichment OR exponential distribution test
+#'   (p < pval_clustering_threshold)
+#'
+#' **Note on threshold selection**:
+#' - Default (0.05): Standard significance level, balances sensitivity and specificity
+#' - Stringent (0.01): Reduces false positives but may miss borderline cases
+#' - The choice depends on your research goals (discovery vs. validation)
 #'
 #' @references
 #' Korbel, J. O. & Campbell, P. J. Criteria for inference of chromothripsis in cancer genomes.
@@ -195,7 +208,9 @@ calculate_confidence_score <- function(chromSummary, chr = NULL) {
 #' using whole-genome sequencing. Nat. Genet. 52, 331-341 (2020).
 #'
 #' @export
-classify_chromothripsis <- function(chromoth_output) {
+classify_chromothripsis <- function(chromoth_output,
+                                    pval_fragment_joins_threshold = 0.05,
+                                    pval_clustering_threshold = 0.05) {
 
     chromSummary <- chromoth_output@chromSummary
 
@@ -243,15 +258,19 @@ classify_chromothripsis <- function(chromoth_output) {
         if (is.na(cn_osc)) cn_osc <- cn_osc_3state
 
         pval_joins <- result$pval_fragment_joins[i]
+        pval_joins_inter <- result$inter_pval_fragment_joins[i]
         pval_exp_cluster <- result$pval_exp_cluster[i]
         pval_chr_enrich <- result$chr_breakpoint_enrichment[i]
 
-        # Check fragment joins test (CRITICAL: p > 0.05 means random joining)
-        fragment_joins_passed <- !is.na(pval_joins) && pval_joins > 0.05
+        # Check fragment joins test (CRITICAL: p > threshold means random joining)
+        # For Type 1: use pval_fragment_joins (intrachromosomal only)
+        # For Type 2: use inter_pval_fragment_joins (inter + intra) if available
+        fragment_joins_passed <- !is.na(pval_joins) && pval_joins > pval_fragment_joins_threshold
+        fragment_joins_passed_inter <- !is.na(pval_joins_inter) && pval_joins_inter > pval_fragment_joins_threshold
 
-        # Check clustering tests (at least one should pass: p < 0.05 means clustering)
-        clustering_passed <- (!is.na(pval_exp_cluster) && pval_exp_cluster < 0.05) ||
-                            (!is.na(pval_chr_enrich) && pval_chr_enrich < 0.05)
+        # Check clustering tests (at least one should pass: p < threshold means clustering)
+        clustering_passed <- (!is.na(pval_exp_cluster) && pval_exp_cluster < pval_clustering_threshold) ||
+                            (!is.na(pval_chr_enrich) && pval_chr_enrich < pval_clustering_threshold)
 
         # HIGH CONFIDENCE TYPE 1: Single/few chromosome, many intrachromosomal SVs
         # - At least 6 intrachromosomal SVs
@@ -268,11 +287,11 @@ classify_chromothripsis <- function(chromoth_output) {
         # - At least 3 intrachromosomal SVs
         # - 4+ interchromosomal SVs
         # - 7+ oscillating CN segments
-        # - Fragment joins test passed
+        # - Fragment joins test passed (prefer inter_pval_fragment_joins if available)
         else if (!is.na(cluster_size_intra) && cluster_size_intra >= 3 &&
                  num_TRA >= 4 &&
                  !is.na(cn_osc) && cn_osc >= 7 &&
-                 fragment_joins_passed) {
+                 (fragment_joins_passed_inter || (is.na(pval_joins_inter) && fragment_joins_passed))) {
             result$classification[i] <- "High confidence"
         }
         # LOW CONFIDENCE
@@ -293,7 +312,8 @@ classify_chromothripsis <- function(chromoth_output) {
                     "clusterSize", "clusterSize_including_TRA", "number_TRA",
                     "max_number_oscillating_CN_segments_2_states",
                     "max_number_oscillating_CN_segments_3_states",
-                    "pval_fragment_joins", "pval_exp_cluster", "chr_breakpoint_enrichment")
+                    "pval_fragment_joins", "inter_pval_fragment_joins",
+                    "pval_exp_cluster", "chr_breakpoint_enrichment")
 
     output_cols <- output_cols[output_cols %in% names(result)]
     result <- result[, output_cols]

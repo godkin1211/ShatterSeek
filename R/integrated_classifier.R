@@ -488,12 +488,28 @@ classify_by_chromosome <- function(mechanism_locations, overlaps) {
 classify_sample_level <- function(chromoanagenesis_result, chr_classification, overlaps) {
 
     # Count mechanisms
-    has_chromothripsis <- !is.null(chromoanagenesis_result$chromothripsis) &&
-                         chromoanagenesis_result$chromothripsis$n_likely > 0
-    has_chromoplexy <- !is.null(chromoanagenesis_result$chromoplexy) &&
-                      chromoanagenesis_result$chromoplexy$likely_chromoplexy > 0
-    has_chromosynthesis <- !is.null(chromoanagenesis_result$chromosynthesis) &&
-                          chromoanagenesis_result$chromosynthesis$likely_chromosynthesis > 0
+    # Chromothripsis: check both high and low confidence
+    has_chromothripsis <- FALSE
+    if (!is.null(chromoanagenesis_result$chromothripsis)) {
+        n_high <- chromoanagenesis_result$chromothripsis$n_high_confidence
+        n_low <- chromoanagenesis_result$chromothripsis$n_low_confidence
+        has_chromothripsis <- (!is.na(n_high) && n_high > 0) ||
+                             (!is.na(n_low) && n_low > 0)
+    }
+
+    # Chromoplexy: check likely events
+    has_chromoplexy <- FALSE
+    if (!is.null(chromoanagenesis_result$chromoplexy)) {
+        n_likely <- chromoanagenesis_result$chromoplexy$likely_chromoplexy
+        has_chromoplexy <- !is.na(n_likely) && n_likely > 0
+    }
+
+    # Chromosynthesis: check likely events
+    has_chromosynthesis <- FALSE
+    if (!is.null(chromoanagenesis_result$chromosynthesis)) {
+        n_likely <- chromoanagenesis_result$chromosynthesis$likely_chromosynthesis
+        has_chromosynthesis <- !is.na(n_likely) && n_likely > 0
+    }
 
     mechanisms_present <- c()
     if (has_chromothripsis) mechanisms_present <- c(mechanisms_present, "chromothripsis")
@@ -552,19 +568,25 @@ analyze_mechanism_dominance <- function(chromoanagenesis_result, chr_classificat
     n_chromoplexy <- 0
     n_chromosynthesis <- 0
 
+    # Chromothripsis: count high + low confidence
     if (!is.null(chromoanagenesis_result$chromothripsis)) {
-        n_chromothripsis <- chromoanagenesis_result$chromothripsis$n_likely +
-                           chromoanagenesis_result$chromothripsis$n_possible
+        n_high <- chromoanagenesis_result$chromothripsis$n_high_confidence
+        n_low <- chromoanagenesis_result$chromothripsis$n_low_confidence
+        n_chromothripsis <- sum(c(n_high, n_low), na.rm = TRUE)
     }
 
+    # Chromoplexy: count likely + possible
     if (!is.null(chromoanagenesis_result$chromoplexy)) {
-        n_chromoplexy <- chromoanagenesis_result$chromoplexy$likely_chromoplexy +
-                        chromoanagenesis_result$chromoplexy$possible_chromoplexy
+        n_likely <- chromoanagenesis_result$chromoplexy$likely_chromoplexy
+        n_possible <- chromoanagenesis_result$chromoplexy$possible_chromoplexy
+        n_chromoplexy <- sum(c(n_likely, n_possible), na.rm = TRUE)
     }
 
+    # Chromosynthesis: count likely + possible
     if (!is.null(chromoanagenesis_result$chromosynthesis)) {
-        n_chromosynthesis <- chromoanagenesis_result$chromosynthesis$likely_chromosynthesis +
-                            chromoanagenesis_result$chromosynthesis$possible_chromosynthesis
+        n_likely <- chromoanagenesis_result$chromosynthesis$likely_chromosynthesis
+        n_possible <- chromoanagenesis_result$chromosynthesis$possible_chromosynthesis
+        n_chromosynthesis <- sum(c(n_likely, n_possible), na.rm = TRUE)
     }
 
     # Calculate proportions
@@ -621,14 +643,28 @@ calculate_complexity_score <- function(chromoanagenesis_result, overlaps, chr_cl
     # 4. Total number of events
 
     # Get basic counts
-    n_mechanisms <- sum(c(
-        !is.null(chromoanagenesis_result$chromothripsis) &&
-            chromoanagenesis_result$chromothripsis$n_likely > 0,
-        !is.null(chromoanagenesis_result$chromoplexy) &&
-            chromoanagenesis_result$chromoplexy$likely_chromoplexy > 0,
-        !is.null(chromoanagenesis_result$chromosynthesis) &&
-            chromoanagenesis_result$chromosynthesis$likely_chromosynthesis > 0
-    ))
+    # Count mechanisms present (with NA-safe checks)
+    has_chromothripsis <- FALSE
+    if (!is.null(chromoanagenesis_result$chromothripsis)) {
+        n_high <- chromoanagenesis_result$chromothripsis$n_high_confidence
+        n_low <- chromoanagenesis_result$chromothripsis$n_low_confidence
+        has_chromothripsis <- (!is.na(n_high) && n_high > 0) ||
+                             (!is.na(n_low) && n_low > 0)
+    }
+
+    has_chromoplexy <- FALSE
+    if (!is.null(chromoanagenesis_result$chromoplexy)) {
+        n_likely <- chromoanagenesis_result$chromoplexy$likely_chromoplexy
+        has_chromoplexy <- !is.na(n_likely) && n_likely > 0
+    }
+
+    has_chromosynthesis <- FALSE
+    if (!is.null(chromoanagenesis_result$chromosynthesis)) {
+        n_likely <- chromoanagenesis_result$chromosynthesis$likely_chromosynthesis
+        has_chromosynthesis <- !is.na(n_likely) && n_likely > 0
+    }
+
+    n_mechanisms <- sum(c(has_chromothripsis, has_chromoplexy, has_chromosynthesis))
 
     n_chromosomes <- nrow(chr_classification)
     n_mixed_chromosomes <- sum(chr_classification$is_mixed, na.rm = TRUE)
@@ -637,13 +673,19 @@ calculate_complexity_score <- function(chromoanagenesis_result, overlaps, chr_cl
     # Calculate total events
     total_events <- 0
     if (!is.null(chromoanagenesis_result$chromothripsis)) {
-        total_events <- total_events + chromoanagenesis_result$chromothripsis$n_likely
+        n_high <- chromoanagenesis_result$chromothripsis$n_high_confidence
+        n_low <- chromoanagenesis_result$chromothripsis$n_low_confidence
+        total_events <- total_events + sum(c(n_high, n_low), na.rm = TRUE)
     }
     if (!is.null(chromoanagenesis_result$chromoplexy)) {
-        total_events <- total_events + chromoanagenesis_result$chromoplexy$likely_chromoplexy
+        n_likely <- chromoanagenesis_result$chromoplexy$likely_chromoplexy
+        n_possible <- chromoanagenesis_result$chromoplexy$possible_chromoplexy
+        total_events <- total_events + sum(c(n_likely, n_possible), na.rm = TRUE)
     }
     if (!is.null(chromoanagenesis_result$chromosynthesis)) {
-        total_events <- total_events + chromoanagenesis_result$chromosynthesis$likely_chromosynthesis
+        n_likely <- chromoanagenesis_result$chromosynthesis$likely_chromosynthesis
+        n_possible <- chromoanagenesis_result$chromosynthesis$possible_chromosynthesis
+        total_events <- total_events + sum(c(n_likely, n_possible), na.rm = TRUE)
     }
 
     # Complexity score (0-1 scale)

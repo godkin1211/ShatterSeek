@@ -39,11 +39,13 @@ export(detect_chromothripsis,SVs,CNVsegs,plot_chromothripsis,
        plot_breakpoint_report,debug_chromoanagenesis_result,
        debug_mixed_mechanisms,
        read_sv_vcf,read_cnv_vcf,
+       granges_to_svs,read_sv_vcf_structuralvariant,
        plot_genome_dashboard,plot_genome_ideogram,
        plot_sv_density_heatmap,plot_genome_wide_cn,
        plot_mechanism_distribution,
        plot_chromoanagenesis_region,arrange_regional_plots,
-       plot_chromoanagenesis_circos,debug_circos_svs)
+       plot_chromoanagenesis_circos,debug_circos_svs,
+       diagnose_chromothripsis_classification,print_diagnostic_report)
 
 exportClasses(
 	SVs,CNVsegs,chromoth
